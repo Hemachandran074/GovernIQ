@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import App from './App';
 
@@ -30,5 +30,30 @@ describe('App Shell', () => {
     render(<App />);
     expect(screen.getByText(/0 nodes/i)).toBeInTheDocument();
     expect(screen.getByText(/0 edges/i)).toBeInTheDocument();
+  });
+
+  it('smoothly toggles sidebar collapsed and expanded states', () => {
+    render(<App />);
+    const sidebar = screen.getByTestId('sidebar');
+    expect(sidebar).toHaveClass('w-[346px]');
+
+    // Click collapse button
+    const collapseBtn = screen.getByTitle('Collapse sidebar');
+    fireEvent.click(collapseBtn);
+    expect(sidebar).toHaveClass('w-0');
+    expect(sidebar).toHaveClass('opacity-0');
+
+    // Click expand button
+    const expandBtn = screen.getByTitle('Expand sidebar');
+    fireEvent.click(expandBtn);
+    expect(sidebar).toHaveClass('w-[346px]');
+    expect(sidebar).toHaveClass('opacity-100');
+  });
+
+  it('toggles theme between light and dark', () => {
+    render(<App />);
+    const themeBtn = screen.getByTitle('Toggle Theme');
+    fireEvent.click(themeBtn);
+    expect(document.documentElement.getAttribute('data-theme')).toMatch(/light|dark/);
   });
 });
