@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     API_KEY: str = Field(default="dev-secret-key-12345")
     HOST: str = Field(default="0.0.0.0")
     PORT: int = Field(default=8000)
+    ENVIRONMENT: str = Field(default="development")
+    MAX_UPLOAD_SIZE_BYTES: int = Field(default=2 * 1024 * 1024)  # 2 MB
     CORS_ORIGINS: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://localhost:3000"]
     )

@@ -6,8 +6,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.core.config import get_settings
+from app.core.errors import register_exception_handlers
 
 
 @asynccontextmanager
@@ -29,6 +31,10 @@ def create_application() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Register centralized domain and validation exception handlers
+    register_exception_handlers(application)
+
+    # Configure CORS middleware
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,
@@ -37,10 +43,12 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # API routes
+    # Public health endpoints (no X-API-Key required)
     application.include_router(health_router, prefix="/api")
-    # Also support direct /health for container orchestrators
     application.include_router(health_router, prefix="")
+
+    # Protected endpoints (X-API-Key enforced via router dependencies)
+    application.include_router(auth_router, prefix="/api")
 
     return application
 

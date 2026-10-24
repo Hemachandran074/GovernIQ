@@ -8,11 +8,11 @@ import {
   ChevronRight,
   UploadCloud,
   Info,
-  Sparkles,
   ArrowUp,
   Mic,
 } from 'lucide-react';
-import { env } from './lib/env';
+import { apiFetch } from './lib/api';
+import { healthResponseSchema } from './types';
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -40,15 +40,8 @@ export const App: React.FC = () => {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const res = await fetch(`${env.VITE_API_URL}/api/health`, {
-          headers: { 'X-API-Key': env.VITE_API_KEY },
-        });
-        if (res.ok) {
-          const data = (await res.json()) as { status: string };
-          setHealthStatus(data.status);
-        } else {
-          setHealthStatus('error');
-        }
+        const data = await apiFetch('/api/health', healthResponseSchema);
+        setHealthStatus(data.status);
       } catch {
         setHealthStatus('disconnected');
       }

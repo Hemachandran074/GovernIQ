@@ -39,3 +39,21 @@ export const healthResponseSchema = z.object({
 });
 
 export type HealthResponse = z.infer<typeof healthResponseSchema>;
+
+export const errorDetailSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+});
+
+export const errorResponseSchema = z.object({
+  error: errorDetailSchema,
+});
+
+export type ErrorResponse = z.infer<typeof errorResponseSchema>;
+
+export const authCheckResponseSchema = z.object({
+  authenticated: z.boolean(),
+  message: z.string(),
+});
+
+export type AuthCheckResponse = z.infer<typeof authCheckResponseSchema>;
