@@ -1,0 +1,84 @@
+# Governance Graph Builder — agent configuration (ready to upload)
+#
+# Upload via the frontend Ingest panel (choose "Agent config"), or:
+#   POST /ingest/agent-config   with { "content": "<this file>" }
+#   POST /ingest/upload?kind=agent-config   (multipart file upload)
+#
+# This is your customer-support manifest mapped into the graph's expected shape.
+# The model records six node types (Agent, User, Model, Tool, DataSource, Policy),
+# so only those are represented here — every entity needs an `id` and a `name`.
+# `reads_from` on a tool creates the transitive "agent -> tool -> data source"
+# access path used by the data-source query.
+
+agent:
+  id: customer-support-agent
+  name: Customer Support Agent
+  description: Answers customer questions using company documentation and CRM information.
+  version: "1.0.0"
+  environment: production
+  status: active
+
+owner:
+  id: user-ai-platform
+  name: AI Platform Team
+  email: ai-platform@company.com
+  role: owner
+  team: AI Platform
+
+model:
+  id: model-gpt-4-1
+  name: gpt-4.1
+  provider: openai
+  modality: text
+
+tools:
+  - id: tool-search-docs
+    name: search_docs
+    type: retriever
+    endpoint: https://pinecone.company.com
+    scopes: [kb:read]
+    reads_from:
+      - ds-knowledge-base
+      - ds-product-docs
+
+  - id: tool-crm-lookup
+    name: crm_lookup
+    type: api
+    endpoint: https://salesforce.company.com/api
+    scopes: [crm:read]
+    reads_from:
+      - ds-crm-database
+
+  - id: tool-send-email
+    name: send_email
+    type: api
+    endpoint: https://graph.microsoft.com
+    scopes: [email:send]
+
+  - id: tool-calculator
+    name: calculator
+    type: builtin
+
+data_sources:
+  - id: ds-knowledge-base
+    name: knowledge-base
+    type: vector
+    classification: internal
+
+  - id: ds-crm-database
+    name: crm-database
+    type: db
+    classification: pii
+
+  - id: ds-product-docs
+    name: product-docs
+    type: s3
+    classification: internal
+
+policies:
+  - id: policy-pii
+    name: PII Handling Policy
+  - id: policy-rate-limit
+    name: Rate Limiting Policy
+  - id: policy-prompt-logging
+    name: Prompt Logging Policy
