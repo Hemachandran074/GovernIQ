@@ -152,3 +152,96 @@ policies:
     assert any("knowledge-base" in t for t in search_reads)
     assert any("product-docs" in t for t in search_reads)
 
+
+def test_parse_runtime_logs_jsonl() -> None:
+    jsonl_content = """
+{"timestamp": "2026-07-01T09:00:00Z", "agent_id": "agent-assistant", "agent_name": "Assistant", "event": "model_invoke", "model": "model-gpt4o-mini", "model_name": "gpt-4o-mini"}
+{"timestamp": "2026-07-01T09:00:01Z", "agent_id": "agent-assistant", "agent_name": "Assistant", "event": "tool_call", "tool": "tool-calculator", "tool_name": "calculator"}
+{"timestamp": "2026-07-01T09:00:02Z", "agent_id": "agent-assistant", "agent_name": "Assistant", "event": "data_read", "data_source": "ds-kb", "data_source_name": "knowledge-base"}
+{"timestamp": "2026-07-01T09:05:00Z", "agent_id": "agent-assistant", "agent_name": "Assistant", "event": "model_invoke", "model": "model-gpt4o-mini", "model_name": "gpt-4o-mini"}
+"""
+    doc = parse_document(jsonl_content, "runtime_logs.jsonl")
+
+    assert len(doc.nodes) == 4
+    node_types = {n.type for n in doc.nodes}
+    assert node_types == {"Agent", "Model", "Tool", "DataSource"}
+
+    assert len(doc.edges) == 3
+    for e in doc.edges:
+        assert e.props.get("observed") is True
+
+    # model_invoke should aggregate count = 2
+    model_edge = next(e for e in doc.edges if e.target == "model-gpt4o-mini")
+    assert model_edge.props.get("observed_count") == 2
+    assert model_edge.props.get("last_seen") == "2026-07-01T09:05:00Z"
+
+
+def test_parse_multi_user_and_non_owning_relation() -> None:
+    yaml_content = """
+agents:
+  - id: agent-analyst
+    name: Data Analyst
+    owner:
+      id: user-alice
+      name: Alice
+      role: owner
+    users:
+      - id: user-dave
+        name: Dave
+        role: analyst
+        relation: USES
+    model:
+      id: model-gpt4o
+      name: gpt-4o
+"""
+    doc = parse_json_or_yaml(yaml_content, "agent_config.yaml")
+
+    user_nodes = [n for n in doc.nodes if n.type == "User"]
+    assert len(user_nodes) == 2
+    user_names = {u.name for u in user_nodes}
+    assert user_names == {"Alice", "Dave"}
+
+    owns_edge = next(e for e in doc.edges if e.source == "user-alice")
+    assert owns_edge.type == "OWNS"
+    assert owns_edge.props.get("declared") is True
+
+    uses_edge = next(e for e in doc.edges if e.source == "user-dave")
+    assert uses_edge.type == "USES"
+    assert uses_edge.props.get("declared") is True
+
+
+def test_parse_markdown_policy_metadata_and_rules() -> None:
+    md_content = """# Usage Policy
+
+**Policy ID:** policy-usage
+**Type:** usage
+
+The Assistant agent must operate within the following constraints:
+
+- Only the `calculator` tool may be invoked for computational tasks.
+- The `knowledge-base` data source is classified **internal** and must not be exposed verbatim.
+- All model invocations use the approved `gpt-4o-mini` model.
+
+This policy applies to the `knowledge-base` data source and the `calculator` tool.
+"""
+    doc = parse_document(md_content, "policy.md")
+
+    policy_node = next(n for n in doc.nodes if n.type == "Policy")
+    assert policy_node.name == "Usage Policy"
+    assert policy_node.props.get("policy_id") == "policy-usage"
+    assert policy_node.props.get("type") == "usage"
+    assert len(policy_node.props.get("rules", [])) == 3
+
+    # Must NOT hallucinate fake models
+    assert not any("invocations" in n.name.lower() for n in doc.nodes)
+
+    # Tool and DataSource extracted correctly
+    tool_node = next((n for n in doc.nodes if n.type == "Tool"), None)
+    assert tool_node is not None
+    assert tool_node.name == "calculator"
+
+    ds_node = next((n for n in doc.nodes if n.type == "DataSource"), None)
+    assert ds_node is not None
+    assert ds_node.name == "knowledge-base"
+
+

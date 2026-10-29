@@ -216,7 +216,7 @@ async def generate_cypher_and_explanation(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(endpoint, json=payload, headers=headers)
 
         if response.status_code == 200:

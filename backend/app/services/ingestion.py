@@ -96,37 +96,60 @@ class ClearGraphResponse(BaseModel):
 
 def _update_memory_graph(doc: ParsedDocument) -> GraphSnapshot:
     """Update in-memory graph cache when Neo4j is offline or during testing."""
-    # 1. Prune previous edges for this document to handle configuration modifications
+    new_edge_ids = {e.id for e in doc.edges}
+
+    # 1. Reconcile previous edges for this document to handle configuration modifications
     for eid in list(_memory_edges.keys()):
-        if _memory_edges[eid].get("source_doc") == doc.source_doc:
-            del _memory_edges[eid]
+        if _memory_edges[eid].get("source_doc") == doc.source_doc and eid not in new_edge_ids:
+            edge_props = _memory_edges[eid].setdefault("props", {})
+            if edge_props.get("observed"):
+                # Was also observed at runtime; keep observation and mark declared=False (drift)
+                edge_props["declared"] = False
+            else:
+                del _memory_edges[eid]
 
     # 2. Prune previous nodes belonging to this document that were removed in the updated config
     new_node_ids = {n.id for n in doc.nodes}
     for nid in list(_memory_nodes.keys()):
         if _memory_nodes[nid].get("source_doc") == doc.source_doc and nid not in new_node_ids:
-            del _memory_nodes[nid]
+            if not _memory_nodes[nid].get("props", {}).get("observed"):
+                del _memory_nodes[nid]
 
     # 3. Upsert current nodes
     for n in doc.nodes:
-        _memory_nodes[n.id] = {
-            "id": n.id,
-            "name": n.name,
-            "type": n.type,
-            "source_doc": n.source_doc or doc.source_doc,
-            "props": n.props,
-        }
+        if n.id in _memory_nodes:
+            _memory_nodes[n.id].setdefault("props", {}).update(n.props)
+        else:
+            _memory_nodes[n.id] = {
+                "id": n.id,
+                "name": n.name,
+                "type": n.type,
+                "source_doc": n.source_doc or doc.source_doc,
+                "props": dict(n.props),
+            }
 
     # 4. Upsert current edges
     for e in doc.edges:
-        _memory_edges[e.id] = {
-            "id": e.id,
-            "source": e.source,
-            "target": e.target,
-            "type": e.type,
-            "source_doc": doc.source_doc,
-            "props": e.props,
-        }
+        if e.id in _memory_edges:
+            existing_props = _memory_edges[e.id].setdefault("props", {})
+            existing_props.update(e.props)
+            if e.props.get("declared"):
+                existing_props["declared"] = True
+            if e.props.get("observed"):
+                existing_props["observed"] = True
+                if "observed_count" in e.props:
+                    existing_props["observed_count"] = e.props["observed_count"]
+                if "last_seen" in e.props:
+                    existing_props["last_seen"] = e.props["last_seen"]
+        else:
+            _memory_edges[e.id] = {
+                "id": e.id,
+                "source": e.source,
+                "target": e.target,
+                "type": e.type,
+                "source_doc": doc.source_doc,
+                "props": dict(e.props),
+            }
 
     return GraphSnapshot(
         nodes=list(_memory_nodes.values()),

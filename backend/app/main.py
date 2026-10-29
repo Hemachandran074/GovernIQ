@@ -85,6 +85,7 @@ def create_application() -> FastAPI:
     application.include_router(auth_router, prefix="/api")
     application.include_router(documents_router, prefix="/api")
     application.include_router(query_router, prefix="/api")
+    application.include_router(query_router, prefix="")
 
     return application
 

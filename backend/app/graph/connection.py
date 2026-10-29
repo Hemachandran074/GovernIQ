@@ -1,5 +1,6 @@
 """Neo4j asynchronous connection pool management for writer and read-only users."""
 
+import asyncio
 import logging
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
@@ -68,11 +69,11 @@ class Neo4jConnectionManager:
         """Check whether both Neo4j connection pools can establish a connection."""
         try:
             writer = self.get_writer()
-            await writer.verify_connectivity()
+            await asyncio.wait_for(writer.verify_connectivity(), timeout=1.0)
             reader = self.get_reader()
-            await reader.verify_connectivity()
+            await asyncio.wait_for(reader.verify_connectivity(), timeout=1.0)
             return True
-        except (ServiceUnavailable, Exception) as exc:
+        except (ServiceUnavailable, asyncio.TimeoutError, TimeoutError, Exception) as exc:
             logger.warning("Neo4j connectivity check failed: %s", exc)
             return False
 

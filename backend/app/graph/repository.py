@@ -18,12 +18,25 @@ async def upsert_document_graph(
     nodes_upserted = 0
     edges_upserted = 0
     new_node_ids = [n.id for n in doc.nodes]
+    new_edge_ids = [e.id for e in doc.edges]
 
     async with driver.session(database=database) as session:
-        # Prune previous relationships for this document to handle configuration modifications
+        # Reconcile previous relationships for this document:
+        # If an edge was also observed, mark declared = false (surfacing drift)
+        # If an edge was never observed, safely delete it
         await session.run(
-            "MATCH ()-[r]->() WHERE r.source_doc = $source_doc DELETE r",
+            """
+            MATCH ()-[r]->()
+            WHERE r.source_doc = $source_doc AND NOT r.id IN $new_edge_ids
+            FOREACH (_ IN CASE WHEN r.observed = true THEN [1] ELSE [] END |
+                SET r.declared = false
+            )
+            FOREACH (_ IN CASE WHEN r.observed IS NULL OR r.observed = false THEN [1] ELSE [] END |
+                DELETE r
+            )
+            """,
             source_doc=doc.source_doc,
+            new_edge_ids=new_edge_ids,
         )
 
         # Prune nodes that were created by this document and removed in the updated config

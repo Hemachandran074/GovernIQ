@@ -8,6 +8,7 @@ from app.parsers.json_yaml import parse_json_or_yaml
 from app.parsers.markdown import parse_markdown
 from app.parsers.models import ParsedDocument, ParsedEdge, ParsedNode
 from app.parsers.prose_extraction import extract_markdown_prose, heuristic_prose_extractor
+from app.parsers.runtime_logs import parse_runtime_logs
 
 
 def compute_content_hash(content: str) -> str:
@@ -21,7 +22,9 @@ def parse_document(content: str, filename: str) -> ParsedDocument:
     content_hash = compute_content_hash(content)
     doc_id = filename
 
-    if ext in (".json",):
+    if ext in (".jsonl",):
+        parsed = parse_runtime_logs(content, filename=doc_id)
+    elif ext in (".json",):
         parsed = parse_json_or_yaml(content, filename=doc_id, is_json=True)
     elif ext in (".yaml", ".yml"):
         parsed = parse_json_or_yaml(content, filename=doc_id, is_json=False)
@@ -59,7 +62,7 @@ def parse_document(content: str, filename: str) -> ParsedDocument:
                 parsed = parse_markdown(content, filename=doc_id)
     else:
         raise UnparseableDocumentError(
-            f"Unsupported file extension '{ext}'. Only .md, .yaml, .yml, and .json are supported."
+            f"Unsupported file extension '{ext}'. Only .md, .yaml, .yml, .json, and .jsonl are supported."
         )
 
     for n in parsed.nodes:
@@ -73,7 +76,9 @@ async def parse_document_async(content: str, filename: str) -> ParsedDocument:
     content_hash = compute_content_hash(content)
     doc_id = filename
 
-    if ext in (".json",):
+    if ext in (".jsonl",):
+        parsed = parse_runtime_logs(content, filename=doc_id)
+    elif ext in (".json",):
         parsed = parse_json_or_yaml(content, filename=doc_id, is_json=True)
     elif ext in (".yaml", ".yml"):
         parsed = parse_json_or_yaml(content, filename=doc_id, is_json=False)
@@ -85,7 +90,7 @@ async def parse_document_async(content: str, filename: str) -> ParsedDocument:
             parsed = await extract_markdown_prose(content, filename=doc_id)
     else:
         raise UnparseableDocumentError(
-            f"Unsupported file extension '{ext}'. Only .md, .yaml, .yml, and .json are supported."
+            f"Unsupported file extension '{ext}'. Only .md, .yaml, .yml, .json, and .jsonl are supported."
         )
 
     for n in parsed.nodes:

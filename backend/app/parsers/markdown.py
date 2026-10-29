@@ -52,10 +52,41 @@ def parse_markdown(content: str, filename: str) -> ParsedDocument:
         except Exception:
             pass
 
-    # Extract Policy Name
+    # Extract Policy Name and Metadata
     policy_name: str | None = None
+    policy_props: dict[str, Any] = {}
+    policy_id: str | None = None
+
     if isinstance(frontmatter_data, dict):
         policy_name = frontmatter_data.get("policy") or frontmatter_data.get("name")
+        policy_id = frontmatter_data.get("id") or frontmatter_data.get("policy_id")
+        policy_props = {
+            k: v
+            for k, v in frontmatter_data.items()
+            if k not in ("policy", "name", "applies_to", "targets", "id", "policy_id")
+        }
+
+    # Extract Policy ID from body if not in frontmatter
+    if not policy_id:
+        id_match = re.search(
+            r"(?:Policy\s*ID|policy_id)\s*[:*]*\s*`?([A-Za-z0-9_\-]+)`?", body, re.IGNORECASE
+        )
+        if id_match:
+            policy_id = id_match.group(1)
+
+    # Extract Policy Type from body
+    type_match = re.search(r"\bType\s*[:*]*\s*`?([A-Za-z0-9_\-]+)`?", body, re.IGNORECASE)
+    if type_match:
+        policy_props["type"] = type_match.group(1).lower()
+
+    # Extract Rules from bullet points
+    rules = [
+        m.group(1).strip()
+        for line in body.splitlines()
+        if (m := re.match(r"^\s*[-*]\s+(.*\S)\s*$", line))
+    ]
+    if rules:
+        policy_props["rules"] = rules
 
     if not policy_name:
         # Check first level 1 or 2 heading
@@ -65,14 +96,6 @@ def parse_markdown(content: str, filename: str) -> ParsedDocument:
 
     if not policy_name:
         policy_name = filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
-
-    policy_props: dict[str, Any] = {}
-    if isinstance(frontmatter_data, dict):
-        policy_props = {
-            k: v
-            for k, v in frontmatter_data.items()
-            if k not in ("policy", "name", "applies_to", "targets")
-        }
 
     sections = [h.strip() for h in re.findall(r"^#{1,3}\s+([^\n]+)", body, re.MULTILINE)]
     if sections:

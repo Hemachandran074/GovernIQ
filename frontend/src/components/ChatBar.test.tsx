@@ -31,10 +31,10 @@ describe('ChatBar', () => {
     fireEvent.click(modelBtn);
 
     expect(screen.getByTestId('model-dropdown-menu')).toBeInTheDocument();
-    expect(screen.getByText('Groq Llama 3.1 8B')).toBeInTheDocument();
+    expect(screen.getByText('Groq Qwen 3.8 27B')).toBeInTheDocument();
 
     // Select different model
-    fireEvent.click(screen.getByText('Groq Llama 3.1 8B'));
+    fireEvent.click(screen.getByText('Groq Qwen 3.8 27B'));
     expect(screen.queryByTestId('model-dropdown-menu')).not.toBeInTheDocument();
   });
 
@@ -90,5 +90,54 @@ describe('ChatBar', () => {
     fireEvent.click(screen.getByText('Clear'));
     expect(mockOnHighlight).toHaveBeenCalledWith(null);
     expect(screen.queryByTestId('query-answer-card')).not.toBeInTheDocument();
+  });
+
+  it('collapses to compact button when collapse button is clicked, and expands back', () => {
+    render(<ChatBar onHighlight={vi.fn()} activeHighlight={null} />);
+
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
+    expect(screen.queryByTestId('expand-chat-btn')).not.toBeInTheDocument();
+
+    // Click collapse button
+    const collapseBtn = screen.getByTestId('collapse-chat-btn');
+    fireEvent.click(collapseBtn);
+
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
+    const expandBtn = screen.getByTestId('expand-chat-btn');
+    expect(expandBtn).toBeInTheDocument();
+    expect(screen.getByText('Ask AI Assistant')).toBeInTheDocument();
+
+    // Click expand button to restore
+    fireEvent.click(expandBtn);
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
+  });
+
+  it('renders collapsed state initially when defaultCollapsed is true, showing highlights badge', () => {
+    render(
+      <ChatBar
+        onHighlight={vi.fn()}
+        activeHighlight={{ node_ids: ['Agent:a1', 'Agent:a2'], edge_ids: [] }}
+        defaultCollapsed={true}
+      />
+    );
+
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
+    expect(screen.getByTestId('expand-chat-btn')).toBeInTheDocument();
+    expect(screen.getByText(/2 highlighted/i)).toBeInTheDocument();
+  });
+
+  it('triggers onToggleCollapse when controlled by parent component', () => {
+    const onToggleCollapse = vi.fn();
+    render(
+      <ChatBar
+        onHighlight={vi.fn()}
+        activeHighlight={null}
+        isCollapsed={false}
+        onToggleCollapse={onToggleCollapse}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('collapse-chat-btn'));
+    expect(onToggleCollapse).toHaveBeenCalledWith(true);
   });
 });

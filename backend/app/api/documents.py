@@ -22,14 +22,14 @@ from app.services.ingestion import (
 
 router = APIRouter(tags=["Documents & Graph"], dependencies=[Depends(verify_api_key)])
 
-ALLOWED_EXTENSIONS = {".json", ".yaml", ".yml", ".md", ".markdown"}
+ALLOWED_EXTENSIONS = {".json", ".yaml", ".yml", ".jsonl", ".md", ".markdown"}
 
 
 @router.post("/documents", response_model=IngestionResponse)
 async def upload_document(
     file: UploadFile = File(...),
 ) -> IngestionResponse:
-    """Upload and ingest an AI governance document (MD, YAML, or JSON)."""
+    """Upload and ingest an AI governance document (MD, YAML, JSON, or JSONL runtime logs)."""
     filename = file.filename or "uploaded_document"
     _, ext = os.path.splitext(filename.lower())
 

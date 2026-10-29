@@ -41,12 +41,12 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
   };
 
   const processFile = async (file: File) => {
-    const validExtensions = ['.json', '.yaml', '.yml', '.md', '.markdown'];
+    const validExtensions = ['.json', '.yaml', '.yml', '.jsonl', '.md', '.markdown'];
     const hasValidExt = validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
 
     if (!hasValidExt) {
       setState('error');
-      setStatusMessage('Unsupported format. Please upload Markdown (.md), YAML, or JSON.');
+      setStatusMessage('Unsupported format. Please upload Markdown (.md), YAML, JSON, or JSONL.');
       return;
     }
 
@@ -132,7 +132,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
         ref={fileInputRef}
         type="file"
         data-testid="file-input"
-        accept=".json,.yaml,.yml,.md,.markdown"
+        accept=".json,.yaml,.yml,.jsonl,.md,.markdown"
         onChange={handleFileChange}
         className="hidden"
       />
@@ -207,7 +207,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
             <span className="text-sm font-medium text-content-primary transition-colors duration-150">
               {state === 'dragging' ? 'Drop document here' : 'Upload document'}
             </span>
-            <span className="text-xs text-content-muted mt-1">MD, YAML or JSON supported</span>
+            <span className="text-xs text-content-muted mt-1">MD, YAML, JSON or JSONL supported</span>
           </div>
         )}
       </div>

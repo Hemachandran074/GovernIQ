@@ -42,6 +42,11 @@ export const App: React.FC = () => {
     return saved !== null ? saved === 'true' : true;
   });
 
+  const [chatCollapsed, setChatCollapsed] = useState<boolean>(() => {
+    const saved = localStorage.getItem('governiq_chat_collapsed');
+    return saved === 'true';
+  });
+
   const [healthStatus, setHealthStatus] = useState<string>('checking');
   const [graph, setGraph] = useState<GraphData>({
     nodes: [],
@@ -134,6 +139,10 @@ export const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('governiq_sidebar_open', String(sidebarOpen));
   }, [sidebarOpen]);
+
+  useEffect(() => {
+    localStorage.setItem('governiq_chat_collapsed', String(chatCollapsed));
+  }, [chatCollapsed]);
 
   // Close layout dropdown when clicking outside
   useEffect(() => {
@@ -660,6 +669,8 @@ export const App: React.FC = () => {
           onHighlight={(h) => setHighlight(h)}
           activeHighlight={highlight}
           onAttachClick={() => setSidebarOpen(true)}
+          isCollapsed={chatCollapsed}
+          onToggleCollapse={setChatCollapsed}
         />
       </main>
     </div>

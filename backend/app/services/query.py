@@ -46,14 +46,26 @@ class QueryResult(BaseModel):
 
 AVAILABLE_MODELS: list[ModelOption] = [
     ModelOption(
-        id="llama-3.3-70b-versatile",
-        name="Groq Llama 3.3 70B",
+        id="openai/gpt-oss-120b",
+        name="Groq GPT-OSS 120B",
         provider="Groq",
         default=True,
     ),
     ModelOption(
-        id="llama-3.1-8b-instant",
-        name="Groq Llama 3.1 8B",
+        id="qwen/qwen3.8-27b",
+        name="Groq Qwen 3.8 27B",
+        provider="Groq",
+        default=False,
+    ),
+    ModelOption(
+        id="openai/gpt-oss-20b",
+        name="Groq GPT-OSS 20B",
+        provider="Groq",
+        default=False,
+    ),
+    ModelOption(
+        id="llama-3.3-70b-versatile",
+        name="Groq Llama 3.3 70B",
         provider="Groq",
         default=False,
     ),

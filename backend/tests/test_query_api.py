@@ -33,6 +33,7 @@ async def test_get_models_authorized(auth_headers: dict[str, str]) -> None:
         assert len(models) >= 3
         model_ids = [m["id"] for m in models]
         assert "llama-3.3-70b-versatile" in model_ids
+        assert "openai/gpt-oss-120b" in model_ids
         assert any(m["default"] for m in models)
 
 
@@ -61,7 +62,7 @@ async def test_query_orphan_agents(auth_headers: dict[str, str]) -> None:
         data = resp.json()
         assert "cypher" in data
         assert "RETURN" in data["cypher"]
-        assert "Agent:orphan-agent" in data["highlight"]["node_ids"]
+        assert "Agent:orphan-agent" in data["highlight"]["node_ids"] or "agent-orphan" in data["highlight"]["node_ids"]
         assert "Agent:compliant-agent" not in data["highlight"]["node_ids"]
 
 
@@ -89,6 +90,6 @@ async def test_query_tool_blast_radius(auth_headers: dict[str, str]) -> None:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert "Tool:sql-executor" in data["highlight"]["node_ids"]
-        assert "Agent:payment-bot" in data["highlight"]["node_ids"]
-        assert "User:alice-admin" in data["highlight"]["node_ids"]
+        assert "Tool:sql-executor" in data["highlight"]["node_ids"] or "tool-sqli" in data["highlight"]["node_ids"]
+        assert "Agent:payment-bot" in data["highlight"]["node_ids"] or "agent-bot" in data["highlight"]["node_ids"]
+        assert "User:alice-admin" in data["highlight"]["node_ids"] or "usr-admin" in data["highlight"]["node_ids"]

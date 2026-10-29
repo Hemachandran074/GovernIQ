@@ -22,10 +22,14 @@ RELATIONSHIP_TYPES: Final[tuple[str, ...]] = (
     "OWNS",
     "ACCESSES",
     "USES",
+    "USES_MODEL",
     "CAN_CALL",
+    "HAS_TOOL",
     "READS",
+    "READS_FROM",
     "WRITES",
     "GOVERNED_BY",
+    "APPLIES_TO",
 )
 
 

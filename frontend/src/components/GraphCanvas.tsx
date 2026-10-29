@@ -28,6 +28,9 @@ const NODE_COLORS: Record<string, string> = {
   Policy: '#14B8A6',     // teal
 };
 
+const MAX_INITIAL_ZOOM = 0.85;
+const DEFAULT_FIT_PADDING = 80;
+
 export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
   ({ graph, layout, theme, selectedNodeId, onSelectNode, highlight }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -35,25 +38,73 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
     const isDark = theme === 'dark';
 
-    // Layout options builder
+    // Helper to fit elements with a strict max zoom ceiling so small graphs aren't blown up
+    const fitToViewport = useCallback(
+      (animate = true, maxZoom = MAX_INITIAL_ZOOM, padding = DEFAULT_FIT_PADDING) => {
+        const cy = cyRef.current;
+        if (!cy) return;
+        const elements = cy.elements();
+        if (elements.length === 0) return;
+
+        const container = cy.container();
+        const width = container?.clientWidth || cy.width();
+        const height = container?.clientHeight || cy.height();
+
+        if (width && height && width > 0 && height > 0) {
+          const bb = elements.boundingBox();
+          if (bb.w > 0 && bb.h > 0) {
+            const wRatio = (width - padding * 2) / bb.w;
+            const hRatio = (height - padding * 2) / bb.h;
+            const fitZoom = Math.min(wRatio, hRatio);
+            const targetZoom = Math.min(fitZoom, maxZoom);
+
+            if (animate) {
+              cy.animate({
+                zoom: targetZoom,
+                center: { eles: elements },
+                duration: 250,
+              });
+            } else {
+              cy.zoom(targetZoom);
+              cy.center(elements);
+            }
+            return;
+          }
+        }
+
+        // Headless or zero-dimension fallback
+        try {
+          cy.fit(elements, padding);
+          if (cy.zoom() > maxZoom) {
+            cy.zoom(maxZoom);
+            cy.center(elements);
+          }
+        } catch {
+          // Ignore headless geometry errors
+        }
+      },
+      []
+    );
+
+    // Layout options builder with fit: false to let fitToViewport manage scale
     const getLayoutConfig = useCallback((layoutName: LayoutName) => {
       switch (layoutName) {
         case 'breadthfirst':
           return {
             name: 'breadthfirst',
-            animate: true,
-            animationDuration: 400,
+            animate: false,
             directed: true,
-            padding: 50,
-            spacingFactor: 1.25,
+            padding: DEFAULT_FIT_PADDING,
+            spacingFactor: 1.4,
+            fit: false,
           };
         case 'concentric':
           return {
             name: 'concentric',
-            animate: true,
-            animationDuration: 400,
-            padding: 50,
-            spacingFactor: 1.25,
+            animate: false,
+            padding: DEFAULT_FIT_PADDING,
+            spacingFactor: 1.4,
+            fit: false,
             concentric: (node: cytoscape.NodeSingular) => {
               const type = node.data('type');
               if (type === 'Policy') return 4;
@@ -67,15 +118,15 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         default:
           return {
             name: 'cose',
-            animate: true,
-            animationDuration: 500,
-            nodeRepulsion: () => 7000,
-            idealEdgeLength: () => 100,
+            animate: false,
+            nodeRepulsion: () => 6500,
+            idealEdgeLength: () => 120,
             edgeElasticity: () => 100,
             gravity: 0.25,
             numIter: 1000,
-            padding: 50,
+            padding: DEFAULT_FIT_PADDING,
             randomize: false,
+            fit: false,
           };
       }
     }, []);
@@ -107,19 +158,23 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           });
         },
         fit: () => {
-          if (!cyRef.current) return;
-          const elements = cyRef.current.elements();
-          if (elements.length > 0) {
-            cyRef.current.animate({
-              fit: { eles: elements, padding: 50 },
-              duration: 300,
-            });
-          }
+          fitToViewport(true, MAX_INITIAL_ZOOM, DEFAULT_FIT_PADDING);
         },
         runLayout: (layoutName: LayoutName) => {
           if (!cyRef.current) return;
-          const layoutInstance = cyRef.current.layout(getLayoutConfig(layoutName));
-          layoutInstance.run();
+          try {
+            const layoutConfig = getLayoutConfig(layoutName);
+            const layoutInstance = cyRef.current.layout({
+              ...layoutConfig,
+              stop: () => {
+                fitToViewport(true, MAX_INITIAL_ZOOM, DEFAULT_FIT_PADDING);
+              },
+            });
+            layoutInstance.run();
+            fitToViewport(false, MAX_INITIAL_ZOOM, DEFAULT_FIT_PADDING);
+          } catch {
+            // Headless fallback
+          }
         },
         selectNode: (nodeId: string) => {
           if (!cyRef.current) return;
@@ -134,7 +189,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           }
         },
       }),
-      [getLayoutConfig]
+      [getLayoutConfig, fitToViewport]
     );
 
     // Initialize Cytoscape instance
@@ -150,8 +205,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             selector: 'node',
             style: {
               shape: 'ellipse',
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               'background-color': 'data(color)',
               label: 'data(label)',
               color: isDark ? '#FFFFFF' : '#0A0A0A',
@@ -159,10 +214,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               'font-family': 'Geist Sans, Inter, system-ui, sans-serif',
               'font-weight': 500,
               'text-valign': 'bottom',
-              'text-margin-y': 7,
+              'text-margin-y': 6,
               'text-wrap': 'ellipsis',
-              'text-max-width': '90px',
-              'border-width': 2.5,
+              'text-max-width': '95px',
+              'border-width': 2,
               'border-color': isDark ? '#141414' : '#FFFFFF',
               'transition-property': 'background-color, border-width, border-color, opacity',
               'transition-duration': 0.2,
@@ -171,22 +226,22 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           {
             selector: 'node:selected',
             style: {
-              'border-width': 4,
+              'border-width': 3.5,
               'border-color': isDark ? '#FFFFFF' : '#0A0A0A',
               'underlay-color': 'data(color)',
-              'underlay-padding': 5,
-              'underlay-opacity': 0.4,
+              'underlay-padding': 4,
+              'underlay-opacity': 0.35,
               'underlay-shape': 'ellipse',
             },
           },
           {
             selector: 'edge',
             style: {
-              width: 2,
+              width: 1.75,
               'line-color': isDark ? '#3E3E3E' : '#D1D1CB',
               'target-arrow-color': isDark ? '#3E3E3E' : '#D1D1CB',
               'target-arrow-shape': 'triangle',
-              'arrow-scale': 1.1,
+              'arrow-scale': 1.0,
               'curve-style': 'bezier',
               label: 'data(label)',
               'font-size': '9px',
@@ -204,7 +259,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           {
             selector: 'edge:selected',
             style: {
-              width: 3,
+              width: 2.5,
               'line-color': isDark ? '#FFFFFF' : '#0A0A0A',
               'target-arrow-color': isDark ? '#FFFFFF' : '#0A0A0A',
             },
@@ -219,14 +274,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             selector: '.highlighted',
             style: {
               opacity: 1,
-              'border-width': 3.5,
+              'border-width': 3,
             },
           },
         ],
         boxSelectionEnabled: false,
         wheelSensitivity: 0.25,
         minZoom: 0.2,
-        maxZoom: 3.5,
+        maxZoom: 2.2,
       });
 
       // Handle node click
@@ -322,13 +377,20 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
       if (elements.length > 0) {
         try {
-          const layoutInstance = cy.layout(getLayoutConfig(layout));
+          const layoutConfig = getLayoutConfig(layout);
+          const layoutInstance = cy.layout({
+            ...layoutConfig,
+            stop: () => {
+              fitToViewport(false, MAX_INITIAL_ZOOM, DEFAULT_FIT_PADDING);
+            },
+          });
           layoutInstance.run();
+          fitToViewport(false, MAX_INITIAL_ZOOM, DEFAULT_FIT_PADDING);
         } catch {
           // Headless/test environment without canvas geometry
         }
       }
-    }, [graph, layout, getLayoutConfig]);
+    }, [graph, layout, getLayoutConfig, fitToViewport]);
 
     // Handle query highlighting and selected node neighborhood focus
     useEffect(() => {

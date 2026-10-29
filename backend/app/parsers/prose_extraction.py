@@ -127,63 +127,100 @@ def heuristic_prose_extractor(content: str, filename: str) -> ExtractedDocumentP
 
     policy_node = register_node(policy_name, "Policy")
 
+    # Extract Policy ID and Type metadata from text
+    id_match = re.search(
+        r"(?:Policy\s*ID|policy_id)\s*[:*]*\s*`?([A-Za-z0-9_\-]+)`?", content, re.IGNORECASE
+    )
+    if id_match:
+        policy_node.props["policy_id"] = id_match.group(1)
+
+    type_match = re.search(r"\bType\s*[:*]*\s*`?([A-Za-z0-9_\-]+)`?", content, re.IGNORECASE)
+    if type_match:
+        policy_node.props["type"] = type_match.group(1).lower()
+
+    rules = [
+        m.group(1).strip()
+        for line in content.splitlines()
+        if (m := re.match(r"^\s*[-*]\s+(.*\S)\s*$", line))
+    ]
+    if rules:
+        policy_node.props["rules"] = rules
+
     def clean_entity_name(raw_name: str) -> str:
-        return re.sub(r"^(?:the|a|an)\s+", "", raw_name, flags=re.IGNORECASE).strip()
+        s = re.sub(r"^(?:the|a|an)\s+", "", raw_name, flags=re.IGNORECASE).strip()
+        return s.strip("`'\".,;:()")
 
     # 2. Extract Models
     model_patterns = [
         r"\b(Claude(?:\s+[\d\.]+\s+[A-Za-z]+)?)\b",
         r"\b(GPT-[\w\.\-]+)\b",
+        r"\b(gpt-[\w\.\-]+)\b",
         r"\b(Llama(?:\s+[\d\.]+\s*[\w\-]*)?)\b",
-        r"\b(?:model|llm)\s+['\"]?([A-Za-z0-9_\-\. ]+)['\"]?",
+        r"(?:model|llm)\s+(?:`([A-Za-z0-9_\-\.]+?)`|'([A-Za-z0-9_\-\.]+?)'|\"([A-Za-z0-9_\-\.]+?)\")",
+        r"(?:`([A-Za-z0-9_\-\.]+?)`|'([A-Za-z0-9_\-\.]+?)'|\"([A-Za-z0-9_\-\.]+?)\")\s+(?:model|llm)",
     ]
     for pattern in model_patterns:
         for m in re.finditer(pattern, content, re.IGNORECASE):
-            m_name = clean_entity_name(m.group(1))
-            if len(m_name) > 2:
-                register_node(m_name, "Model")
+            # Pick first non-empty group
+            matched_val = next((g for g in m.groups() if g), None)
+            if matched_val:
+                m_name = clean_entity_name(matched_val)
+                if len(m_name) > 2:
+                    register_node(m_name, "Model")
 
-    # 3. Extract Tools (proper capitalized phrase ending in Tool/API/Executor/Client)
+    # 3. Extract Tools
     tool_patterns = [
         (
             r"\b([A-Z][a-zA-Z0-9_\-]*(?:[ \t]+[A-Z][a-zA-Z0-9_\-]*)*"
             r"[ \t]+(?:Tool|API|Executor|Client))\b"
         ),
-        r"(?:tool|api)\s+['\"]?([A-Z][A-Za-z0-9_\- ]+)['\"]?",
+        r"`([A-Za-z0-9_\-]+)`\s*(?:tool|api)",
+        r"(?:tool|api)\s+`([A-Za-z0-9_\-]+)`",
+        r"(?:tool|api)\s+['\"]([A-Za-z0-9_\- ]+)['\"]",
     ]
     for pattern in tool_patterns:
         for m in re.finditer(pattern, content):
-            t_name = clean_entity_name(m.group(1))
-            if len(t_name) > 2:
-                register_node(t_name, "Tool")
+            matched_val = next((g for g in m.groups() if g), None)
+            if matched_val:
+                t_name = clean_entity_name(matched_val)
+                if len(t_name) > 2:
+                    register_node(t_name, "Tool")
 
-    # 4. Extract Data Sources (proper capitalized phrase ending in Database/DB/Lake/Warehouse/Store)
+    # 4. Extract Data Sources
     ds_patterns = [
         (
             r"\b([A-Z][a-zA-Z0-9_\-]*(?:[ \t]+[A-Z][a-zA-Z0-9_\-]*)*"
             r"[ \t]+(?:Database|DB|Lake|Warehouse|Store))\b"
         ),
-        r"(?:datasource|database|data source)\s+['\"]?([A-Z][A-Za-z0-9_\- ]+)['\"]?",
+        r"`([A-Za-z0-9_\-]+)`\s*(?:data\s*source|database|db|store)",
+        r"(?:data\s*source|database|db|store)\s+`([A-Za-z0-9_\-]+)`",
+        r"(?:datasource|database|data source)\s+['\"]([A-Za-z0-9_\- ]+)['\"]",
     ]
     for pattern in ds_patterns:
         for m in re.finditer(pattern, content):
-            d_name = clean_entity_name(m.group(1))
-            if len(d_name) > 2:
-                register_node(d_name, "DataSource")
+            matched_val = next((g for g in m.groups() if g), None)
+            if matched_val:
+                d_name = clean_entity_name(matched_val)
+                if len(d_name) > 2:
+                    register_node(d_name, "DataSource")
 
-    # 5. Extract Agents (proper capitalized noun phrase ending in Agent/Bot/Assistant)
+    # 5. Extract Agents
     agent_patterns = [
         (
             r"\b([A-Z][a-zA-Z0-9_\-]*(?:[ \t]+[A-Z][a-zA-Z0-9_\-]*)*"
             r"[ \t]+(?:Agent|Bot|Assistant))\b"
         ),
+        r"(?:the\s+)?([A-Z][a-zA-Z0-9_\-]+)\s+(?:agent|assistant|bot)\b",
+        r"`([A-Za-z0-9_\-]+)`\s*(?:agent|assistant|bot)",
         r"(?:agent|bot)\s+['\"]?([A-Z][A-Za-z0-9_\- ]+)['\"]?",
     ]
     for pattern in agent_patterns:
         for m in re.finditer(pattern, content):
-            a_name = clean_entity_name(m.group(1))
-            if len(a_name) > 2:
-                register_node(a_name, "Agent")
+            matched_val = next((g for g in m.groups() if g), None)
+            if matched_val:
+                a_name = clean_entity_name(matched_val)
+                if len(a_name) > 2:
+                    register_node(a_name, "Agent")
 
     # 6. Extract Owners / Users
     owner_match = re.search(
@@ -305,7 +342,7 @@ async def extract_prose_via_llm(content: str, filename: str) -> ExtractedDocumen
     }
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=6.0) as client:
             response = await client.post(endpoint, json=payload, headers=headers)
 
         if response.status_code == 200:

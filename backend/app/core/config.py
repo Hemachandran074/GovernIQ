@@ -2,17 +2,21 @@
 
 import json
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_backend_env = Path(__file__).resolve().parent.parent.parent / ".env"
+_root_env = Path(__file__).resolve().parent.parent.parent.parent / ".env"
 
 
 class Settings(BaseSettings):
     """Runtime application settings."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(_backend_env, _root_env, ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -44,7 +48,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = Field(default="groq")
     LLM_API_KEY: str = Field(default="")
     LLM_BASE_URL: str = Field(default="https://api.groq.com/openai/v1")
-    LLM_MODEL: str = Field(default="llama-3.3-70b-versatile")
+    LLM_MODEL: str = Field(default="openai/gpt-oss-120b")
 
     @field_validator("CORS_ORIGINS", mode="after")
     @classmethod

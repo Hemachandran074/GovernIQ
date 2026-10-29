@@ -10,10 +10,10 @@ describe('UploadZone', () => {
   it('renders idle state with drop prompt and accepts file dialog click', () => {
     render(<UploadZone />);
     expect(screen.getByText('Upload document')).toBeInTheDocument();
-    expect(screen.getByText(/MD, YAML or JSON supported/i)).toBeInTheDocument();
+    expect(screen.getByText(/MD, YAML, JSON or JSONL supported/i)).toBeInTheDocument();
 
     const fileInput = screen.getByTestId('file-input') as HTMLInputElement;
-    expect(fileInput).toHaveAttribute('accept', '.json,.yaml,.yml,.md,.markdown');
+    expect(fileInput).toHaveAttribute('accept', '.json,.yaml,.yml,.jsonl,.md,.markdown');
   });
 
   it('shows error for unsupported file extension', async () => {
@@ -26,7 +26,7 @@ describe('UploadZone', () => {
     await waitFor(() => {
       expect(screen.getByText('Upload failed')).toBeInTheDocument();
       expect(
-        screen.getByText(/Unsupported format. Please upload Markdown \(\.md\), YAML, or JSON./i)
+        screen.getByText(/Unsupported format. Please upload Markdown \(\.md\), YAML, JSON, or JSONL./i)
       ).toBeInTheDocument();
     });
   });

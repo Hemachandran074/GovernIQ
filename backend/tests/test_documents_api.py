@@ -44,6 +44,29 @@ async def test_upload_valid_yaml_document() -> None:
 
 
 @pytest.mark.asyncio
+async def test_upload_valid_jsonl_document() -> None:
+    settings = get_settings()
+    jsonl_content = (
+        b'{"timestamp": "2024-10-28T10:00:00Z", "event": "model_invoke", "agent": "LogAgent", "model": "gpt-4o"}\n'
+        b'{"timestamp": "2024-10-28T10:00:01Z", "event": "tool_call", "agent": "LogAgent", "tool": "LogSearchTool"}\n'
+        b'{"timestamp": "2024-10-28T10:00:02Z", "event": "data_read", "agent": "LogAgent", "data_source": "LogDB"}\n'
+    )
+    headers = {"X-API-Key": settings.API_KEY}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/documents",
+            files={"file": ("runtime.jsonl", jsonl_content, "application/jsonl")},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "summary" in data
+        assert data["summary"]["nodes_processed"] >= 4
+        assert "graph" in data
+        assert data["graph"]["node_count"] >= 4
+
+
+@pytest.mark.asyncio
 async def test_upload_unsupported_file_extension() -> None:
     settings = get_settings()
     headers = {"X-API-Key": settings.API_KEY}

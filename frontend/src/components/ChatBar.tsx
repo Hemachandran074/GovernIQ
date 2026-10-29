@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   ArrowUp,
   ChevronDown,
+  ChevronUp,
   Sparkles,
   Mic,
   Plus,
@@ -20,18 +21,33 @@ interface ChatBarProps {
   activeHighlight: QueryHighlight | null;
   onAttachClick?: () => void;
   disabled?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: (collapsed: boolean) => void;
+  defaultCollapsed?: boolean;
 }
 
 const DEFAULT_MODELS: ModelOption[] = [
   {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Groq Llama 3.3 70B',
+    id: 'openai/gpt-oss-120b',
+    name: 'Groq GPT-OSS 120B',
     provider: 'Groq',
     default: true,
   },
   {
-    id: 'llama-3.1-8b-instant',
-    name: 'Groq Llama 3.1 8B',
+    id: 'qwen/qwen3.8-27b',
+    name: 'Groq Qwen 3.8 27B',
+    provider: 'Groq',
+    default: false,
+  },
+  {
+    id: 'openai/gpt-oss-20b',
+    name: 'Groq GPT-OSS 20B',
+    provider: 'Groq',
+    default: false,
+  },
+  {
+    id: 'llama-3.3-70b-versatile',
+    name: 'Groq Llama 3.3 70B',
     provider: 'Groq',
     default: false,
   },
@@ -56,10 +72,34 @@ export function ChatBar({
   activeHighlight,
   onAttachClick,
   disabled = false,
+  isCollapsed: controlledCollapsed,
+  onToggleCollapse,
+  defaultCollapsed = false,
 }: ChatBarProps) {
+  const [internalCollapsed, setInternalCollapsed] = useState<boolean>(defaultCollapsed);
+  const isCollapsed = controlledCollapsed !== undefined ? controlledCollapsed : internalCollapsed;
+
+  const handleToggleCollapse = (nextCollapsed: boolean) => {
+    if (nextCollapsed) {
+      setIsModelMenuOpen(false);
+      setIsEffortMenuOpen(false);
+    }
+    if (controlledCollapsed === undefined) {
+      setInternalCollapsed(nextCollapsed);
+    }
+    onToggleCollapse?.(nextCollapsed);
+  };
+
+  const handleExpand = () => {
+    handleToggleCollapse(false);
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 50);
+  };
+
   const [question, setQuestion] = useState('');
   const [models, setModels] = useState<ModelOption[]>(DEFAULT_MODELS);
-  const [selectedModelId, setSelectedModelId] = useState<string>('llama-3.3-70b-versatile');
+  const [selectedModelId, setSelectedModelId] = useState<string>('openai/gpt-oss-120b');
   const [effort, setEffort] = useState<EffortLevel>('high');
 
   const [isModelMenuOpen, setIsModelMenuOpen] = useState(false);
@@ -165,16 +205,53 @@ export function ChatBar({
   };
 
   const fallbackModel: ModelOption = {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Groq Llama 3.3 70B',
+    id: 'openai/gpt-oss-120b',
+    name: 'Groq GPT-OSS 120B',
     provider: 'Groq',
     default: true,
   };
   const currentModel: ModelOption =
     models.find((m) => m.id === selectedModelId) ?? models[0] ?? fallbackModel;
 
+  if (isCollapsed) {
+    return (
+      <div
+        data-testid="chat-bar-collapsed"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-200"
+      >
+        <button
+          type="button"
+          data-testid="expand-chat-btn"
+          onClick={handleExpand}
+          className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-float)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--text-muted)] text-[var(--text-primary)] transition-all duration-200 active:scale-95 group backdrop-blur-md cursor-pointer"
+          aria-label="Expand AI chat"
+          aria-expanded={false}
+        >
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--node-agent)]/15 text-[var(--node-agent)]">
+            <Sparkles className="h-3.5 w-3.5 group-hover:rotate-12 transition-transform duration-200" />
+          </div>
+          <span className="text-xs font-semibold tracking-tight">Ask AI Assistant</span>
+          {queryResult && (
+            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--node-agent)]/15 text-[var(--node-agent)] border border-[var(--node-agent)]/30">
+              Result Ready
+            </span>
+          )}
+          {activeHighlight && activeHighlight.node_ids.length > 0 && (
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[var(--state-success)]/15 text-[var(--state-success)] font-semibold border border-[var(--state-success)]/30">
+              {activeHighlight.node_ids.length} highlighted
+            </span>
+          )}
+          <ChevronUp className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-transform duration-200 group-hover:-translate-y-0.5" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[520px] z-30 flex flex-col items-center">
+    <div
+      data-testid="chat-bar-expanded"
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[520px] z-30 flex flex-col items-center transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
+    >
       {/* Answer & Query Result Card */}
       {queryResult && (
         <div
@@ -201,6 +278,16 @@ export function ChatBar({
                 title="Clear highlight and dismiss"
               >
                 Clear
+              </button>
+              <button
+                type="button"
+                data-testid="collapse-card-btn"
+                onClick={() => handleToggleCollapse(true)}
+                className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                title="Collapse chat"
+                aria-label="Collapse chat"
+              >
+                <ChevronDown className="h-4 w-4" />
               </button>
               <button
                 type="button"
@@ -287,7 +374,7 @@ export function ChatBar({
         className="w-full rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-float)] transition-all focus-within:ring-2 focus-within:ring-[var(--text-primary)]/20 p-2.5"
       >
         {/* Top Input Row */}
-        <div className="px-2 pt-1 pb-2">
+        <div className="px-2 pt-1 pb-2 flex items-center justify-between gap-2">
           <input
             ref={inputRef}
             type="text"
@@ -298,6 +385,16 @@ export function ChatBar({
             placeholder="Ask anything about agents, tools, models, policies..."
             className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
+          <button
+            type="button"
+            data-testid="collapse-chat-btn"
+            onClick={() => handleToggleCollapse(true)}
+            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors shrink-0"
+            title="Collapse chat"
+            aria-label="Collapse chat"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
         </div>
 
         {/* Bottom Actions Row */}
