@@ -538,6 +538,19 @@ export const App: React.FC = () => {
                 )}
               </button>
 
+              {/* AI Chat Toggle */}
+              <button
+                data-testid="toggle-chat-btn"
+                onClick={() => setChatCollapsed((prev) => !prev)}
+                title={chatCollapsed ? 'Expand AI chat' : 'Collapse AI chat'}
+                className={`p-1.5 rounded-lg border border-border bg-surface hover:bg-surface-hover active:scale-90 transition-all duration-200 group shadow-sm ${
+                  !chatCollapsed ? 'text-node-agent border-node-agent/40 bg-node-agent/10' : 'text-content-primary'
+                }`}
+                aria-label="Toggle AI chat"
+              >
+                <Bot className="h-4 w-4" />
+              </button>
+
               {/* Clear Graph Button (Dev/Demo reset) */}
               {graph.node_count > 0 && (
                 <button

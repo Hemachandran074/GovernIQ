@@ -59,11 +59,16 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             const targetZoom = Math.min(fitZoom, maxZoom);
 
             if (animate) {
-              cy.animate({
-                zoom: targetZoom,
-                center: { eles: elements },
-                duration: 250,
-              });
+              cy.animate(
+                {
+                  zoom: targetZoom,
+                  center: { eles: elements },
+                },
+                {
+                  duration: 320,
+                  easing: 'ease-out-cubic',
+                }
+              );
             } else {
               cy.zoom(targetZoom);
               cy.center(elements);
@@ -86,13 +91,15 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       []
     );
 
-    // Layout options builder with fit: false to let fitToViewport manage scale
-    const getLayoutConfig = useCallback((layoutName: LayoutName) => {
+    // Layout options builder with optional smooth animation support
+    const getLayoutConfig = useCallback((layoutName: LayoutName, animate = false) => {
       switch (layoutName) {
         case 'breadthfirst':
           return {
             name: 'breadthfirst',
-            animate: false,
+            animate,
+            animationDuration: 500,
+            animationEasing: 'ease-out-cubic',
             directed: true,
             padding: DEFAULT_FIT_PADDING,
             spacingFactor: 1.4,
@@ -101,7 +108,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         case 'concentric':
           return {
             name: 'concentric',
-            animate: false,
+            animate,
+            animationDuration: 500,
+            animationEasing: 'ease-out-cubic',
             padding: DEFAULT_FIT_PADDING,
             spacingFactor: 1.4,
             fit: false,
@@ -118,7 +127,9 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         default:
           return {
             name: 'cose',
-            animate: false,
+            animate,
+            animationDuration: 500,
+            animationEasing: 'ease-out-cubic',
             nodeRepulsion: () => 6500,
             idealEdgeLength: () => 120,
             edgeElasticity: () => 100,
@@ -136,26 +147,36 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
       ref,
       () => ({
         zoomIn: () => {
-          if (!cyRef.current) return;
-          const currentZoom = cyRef.current.zoom();
-          cyRef.current.zoom({
-            level: currentZoom * 1.25,
-            renderedPosition: {
-              x: cyRef.current.width() / 2,
-              y: cyRef.current.height() / 2,
-            },
-          });
+          const cy = cyRef.current;
+          if (!cy) return;
+          const currentZoom = cy.zoom();
+          const targetZoom = Math.min(currentZoom * 1.3, 2.5);
+          const center = { x: cy.width() / 2, y: cy.height() / 2 };
+          const pan = cy.pan();
+          const newPan = {
+            x: center.x - (center.x - pan.x) * (targetZoom / currentZoom),
+            y: center.y - (center.y - pan.y) * (targetZoom / currentZoom),
+          };
+          cy.animate(
+            { zoom: targetZoom, pan: newPan },
+            { duration: 220, easing: 'ease-out-cubic' }
+          );
         },
         zoomOut: () => {
-          if (!cyRef.current) return;
-          const currentZoom = cyRef.current.zoom();
-          cyRef.current.zoom({
-            level: currentZoom * 0.8,
-            renderedPosition: {
-              x: cyRef.current.width() / 2,
-              y: cyRef.current.height() / 2,
-            },
-          });
+          const cy = cyRef.current;
+          if (!cy) return;
+          const currentZoom = cy.zoom();
+          const targetZoom = Math.max(currentZoom * 0.75, 0.2);
+          const center = { x: cy.width() / 2, y: cy.height() / 2 };
+          const pan = cy.pan();
+          const newPan = {
+            x: center.x - (center.x - pan.x) * (targetZoom / currentZoom),
+            y: center.y - (center.y - pan.y) * (targetZoom / currentZoom),
+          };
+          cy.animate(
+            { zoom: targetZoom, pan: newPan },
+            { duration: 220, easing: 'ease-out-cubic' }
+          );
         },
         fit: () => {
           fitToViewport(true, MAX_INITIAL_ZOOM, DEFAULT_FIT_PADDING);
@@ -163,7 +184,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         runLayout: (layoutName: LayoutName) => {
           if (!cyRef.current) return;
           try {
-            const layoutConfig = getLayoutConfig(layoutName);
+            const layoutConfig = getLayoutConfig(layoutName, true);
             const layoutInstance = cyRef.current.layout({
               ...layoutConfig,
               stop: () => {
@@ -171,7 +192,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               },
             });
             layoutInstance.run();
-            fitToViewport(false, MAX_INITIAL_ZOOM, DEFAULT_FIT_PADDING);
           } catch {
             // Headless fallback
           }
@@ -182,10 +202,15 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           if (targetNode.length > 0) {
             cyRef.current.$(':selected').unselect();
             targetNode.select();
-            cyRef.current.animate({
-              center: { eles: targetNode },
-              duration: 300,
-            });
+            cyRef.current.animate(
+              {
+                center: { eles: targetNode },
+              },
+              {
+                duration: 350,
+                easing: 'ease-out-cubic',
+              }
+            );
           }
         },
       }),
@@ -220,7 +245,17 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               'border-width': 2,
               'border-color': isDark ? '#141414' : '#FFFFFF',
               'transition-property': 'background-color, border-width, border-color, opacity',
-              'transition-duration': 0.2,
+              'transition-duration': 0.22,
+            },
+          },
+          {
+            selector: 'node.node-hovered',
+            style: {
+              'border-width': 3,
+              'underlay-color': 'data(color)',
+              'underlay-padding': 5,
+              'underlay-opacity': 0.25,
+              'underlay-shape': 'ellipse',
             },
           },
           {
@@ -229,8 +264,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               'border-width': 3.5,
               'border-color': isDark ? '#FFFFFF' : '#0A0A0A',
               'underlay-color': 'data(color)',
-              'underlay-padding': 4,
-              'underlay-opacity': 0.35,
+              'underlay-padding': 5,
+              'underlay-opacity': 0.38,
               'underlay-shape': 'ellipse',
             },
           },
@@ -253,7 +288,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               'text-background-padding': '2px',
               'text-background-shape': 'roundrectangle',
               'transition-property': 'line-color, target-arrow-color, width, opacity',
-              'transition-duration': 0.2,
+              'transition-duration': 0.22,
             },
           },
           {
@@ -267,21 +302,45 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
           {
             selector: '.dimmed',
             style: {
-              opacity: 0.2,
+              opacity: 0.18,
             },
           },
           {
             selector: '.highlighted',
             style: {
               opacity: 1,
-              'border-width': 3,
+              'border-width': 3.2,
             },
           },
         ],
         boxSelectionEnabled: false,
-        wheelSensitivity: 0.25,
         minZoom: 0.2,
         maxZoom: 2.2,
+      });
+
+      // Smooth hover effects on nodes and edges
+      cy.on('mouseover', 'node', (evt: EventObject) => {
+        const node = evt.target as cytoscape.NodeSingular;
+        const container = cy.container();
+        if (container) container.style.cursor = 'pointer';
+        node.addClass('node-hovered');
+      });
+
+      cy.on('mouseout', 'node', (evt: EventObject) => {
+        const node = evt.target as cytoscape.NodeSingular;
+        const container = cy.container();
+        if (container) container.style.cursor = 'default';
+        node.removeClass('node-hovered');
+      });
+
+      cy.on('mouseover', 'edge', () => {
+        const container = cy.container();
+        if (container) container.style.cursor = 'pointer';
+      });
+
+      cy.on('mouseout', 'edge', () => {
+        const container = cy.container();
+        if (container) container.style.cursor = 'default';
       });
 
       // Handle node click
@@ -304,6 +363,28 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
         cyRef.current = null;
       };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Continuous smooth resize adaptation when sidebar expands/collapses or window resizes
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container || typeof ResizeObserver === 'undefined') return;
+
+      let rafId: number;
+      const ro = new ResizeObserver(() => {
+        rafId = requestAnimationFrame(() => {
+          if (cyRef.current) {
+            cyRef.current.resize();
+          }
+        });
+      });
+
+      ro.observe(container);
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        ro.disconnect();
+      };
+    }, []);
 
     // Update stylesheet colors on theme change without destroying instance
     useEffect(() => {
@@ -377,7 +458,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
 
       if (elements.length > 0) {
         try {
-          const layoutConfig = getLayoutConfig(layout);
+          const layoutConfig = getLayoutConfig(layout, false);
           const layoutInstance = cy.layout({
             ...layoutConfig,
             stop: () => {

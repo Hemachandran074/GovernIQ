@@ -217,18 +217,18 @@ export function ChatBar({
     return (
       <div
         data-testid="chat-bar-collapsed"
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-200"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
       >
         <button
           type="button"
           data-testid="expand-chat-btn"
           onClick={handleExpand}
-          className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-float)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--text-muted)] text-[var(--text-primary)] transition-all duration-200 active:scale-95 group backdrop-blur-md cursor-pointer"
+          className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--bg-surface)]/90 border border-[var(--border-default)] shadow-[var(--shadow-float)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--text-muted)] text-[var(--text-primary)] transition-all duration-300 active:scale-95 group backdrop-blur-xl cursor-pointer"
           aria-label="Expand AI chat"
           aria-expanded={false}
         >
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--node-agent)]/15 text-[var(--node-agent)]">
-            <Sparkles className="h-3.5 w-3.5 group-hover:rotate-12 transition-transform duration-200" />
+            <Sparkles className="h-3.5 w-3.5 group-hover:rotate-12 transition-transform duration-300" />
           </div>
           <span className="text-xs font-semibold tracking-tight">Ask AI Assistant</span>
           {queryResult && (
@@ -241,7 +241,7 @@ export function ChatBar({
               {activeHighlight.node_ids.length} highlighted
             </span>
           )}
-          <ChevronUp className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-transform duration-200 group-hover:-translate-y-0.5" />
+          <ChevronUp className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-transform duration-300 group-hover:-translate-y-0.5" />
         </button>
       </div>
     );
@@ -250,13 +250,13 @@ export function ChatBar({
   return (
     <div
       data-testid="chat-bar-expanded"
-      className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[520px] z-30 flex flex-col items-center transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[540px] z-30 flex flex-col items-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in fade-in slide-in-from-bottom-2"
     >
       {/* Answer & Query Result Card */}
       {queryResult && (
         <div
           data-testid="query-answer-card"
-          className="w-full mb-3 p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-float)] backdrop-blur-md transition-all animate-in fade-in slide-in-from-bottom-2 duration-200"
+          className="w-full mb-3 p-4 rounded-2xl bg-[var(--bg-surface)]/95 border border-[var(--border-default)] shadow-[var(--shadow-float)] backdrop-blur-xl transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 flex-wrap">
@@ -371,7 +371,7 @@ export function ChatBar({
       {/* Main Floating Chat Input Card */}
       <form
         onSubmit={handleSubmit}
-        className="w-full rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-float)] transition-all focus-within:ring-2 focus-within:ring-[var(--text-primary)]/20 p-2.5"
+        className="w-full rounded-2xl bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-default)] shadow-[var(--shadow-float)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[var(--text-primary)]/15 focus-within:border-[var(--text-muted)] p-2.5"
       >
         {/* Top Input Row */}
         <div className="px-2 pt-1 pb-2 flex items-center justify-between gap-2">
@@ -431,7 +431,7 @@ export function ChatBar({
               {isModelMenuOpen && (
                 <div
                   data-testid="model-dropdown-menu"
-                  className="absolute bottom-full mb-2 left-0 w-52 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-float)] py-1 z-40 animate-in fade-in duration-150"
+                  className="absolute bottom-full mb-2 left-0 w-52 rounded-xl bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-default)] shadow-[var(--shadow-float)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
                 >
                   <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border-default)]">
                     Select LLM Model
@@ -483,7 +483,7 @@ export function ChatBar({
               {isEffortMenuOpen && (
                 <div
                   data-testid="effort-dropdown-menu"
-                  className="absolute bottom-full mb-2 left-0 w-36 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-[var(--shadow-float)] py-1 z-40 animate-in fade-in duration-150"
+                  className="absolute bottom-full mb-2 left-0 w-36 rounded-xl bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-default)] shadow-[var(--shadow-float)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
                 >
                   <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border-default)]">
                     Effort Level

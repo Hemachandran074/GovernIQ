@@ -96,10 +96,10 @@ export const NodeDetailPanel: React.FC<NodeDetailPanelProps> = ({
   return (
     <div
       data-testid="node-detail-panel"
-      className="absolute top-4 right-4 w-96 max-w-[calc(100vw-32px)] max-h-[calc(100%-32px)] bg-surface border border-border rounded-2xl shadow-float flex flex-col z-20 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in fade-in slide-in-from-right-4"
+      className="absolute top-4 right-4 w-96 max-w-[calc(100vw-32px)] max-h-[calc(100%-32px)] bg-surface/90 backdrop-blur-xl border border-border/80 rounded-2xl shadow-float flex flex-col z-20 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in fade-in slide-in-from-right-4"
     >
       {/* Header */}
-      <div className="p-4 border-b border-border flex items-start justify-between bg-surface/80 backdrop-blur-sm">
+      <div className="p-4 border-b border-border/60 flex items-start justify-between bg-surface/70 backdrop-blur-md">
         <div className="flex-1 min-w-0 pr-2">
           {detail && (
             <span

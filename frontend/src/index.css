@@ -12,7 +12,7 @@
   --text-muted: #6B6B6B;
   --border-default: #E2E2DE;
   --border-dashed: #6B6B6B;
-  --shadow-float: 0 1px 6px rgba(0, 0, 0, 0.10);
+  --shadow-float: 0 4px 20px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
   --state-error: #DC2626;
   --state-success: #16A34A;
 
@@ -25,21 +25,33 @@
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Smooth motion curves */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 :root[data-theme="dark"] {
   --bg-base: #000000;
-  --bg-sidebar: #1A1A1A;
+  --bg-sidebar: #141414;
   --bg-surface: #141414;
-  --bg-surface-hover: #242424;
-  --bg-selected: #2E2E2E;
+  --bg-surface-hover: #222222;
+  --bg-selected: #2A2A2A;
   --text-primary: #FFFFFF;
   --text-muted: #9A9A9A;
-  --border-default: #2E2E2E;
-  --border-dashed: #CFCFCF;
-  --shadow-float: none;
+  --border-default: #262626;
+  --border-dashed: #666666;
+  --shadow-float: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   --state-error: #F87171;
   --state-success: #4ADE80;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -48,11 +60,47 @@ body {
   color: var(--text-primary);
   margin: 0;
   padding: 0;
-  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  transition: background-color 0.25s var(--ease-spring), color 0.25s var(--ease-spring);
 }
 
-/* Smooth transitions for theme sensitive containers */
-aside, main, header, div, button, input {
+/* Custom sleek scrollbar for smooth scroll feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 9999px;
+  transition: background-color 0.2s var(--ease-spring);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Smooth interactive transitions for structural components */
+aside, header, main, nav {
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 0.25s;
+  transition-timing-function: var(--ease-spring);
+}
+
+/* Smooth button and interactive press mechanics */
+button, input, select, textarea {
   transition-property: background-color, border-color, color, box-shadow, transform, opacity;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-duration: 0.18s;
+  transition-timing-function: var(--ease-spring);
+}
+
+/* Glassmorphism utility */
+.glass-surface {
+  background-color: color-mix(in srgb, var(--bg-surface) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
