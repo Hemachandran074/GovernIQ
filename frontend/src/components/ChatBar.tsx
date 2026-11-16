@@ -120,10 +120,10 @@ export function ChatBar({
   useEffect(() => {
     let isMounted = true;
     fetchModels()
-      .then((data) => {
+      .then((data: ModelOption[]) => {
         if (isMounted && data.length > 0) {
           setModels(data);
-          const defaultMod = data.find((m) => m.default) || data[0];
+          const defaultMod = data.find((m: ModelOption) => m.default) || data[0];
           if (defaultMod) {
             setSelectedModelId(defaultMod.id);
           }
