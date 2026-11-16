@@ -6,7 +6,7 @@ The **Governance Graph Builder** turns AI-governance documents (Markdown, YAML, 
 
 ## Architecture Overview
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Cytoscape.js, TanStack Query, Zustand
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Cytoscape.js, TanStack Query, Zustand (see [Frontend Architecture Guide](FRONTEND.md))
 - **Backend**: Python 3.11+, FastAPI, Pydantic v2, Uvicorn
 - **Graph Database**: Neo4j AuraDB (or local Neo4j Docker)
 - **AI/LLM Layer**: Provider-agnostic OpenAI-compatible client (Groq / OpenAI) with safe Cypher validation

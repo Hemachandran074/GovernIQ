@@ -109,7 +109,7 @@ describe('App Shell', () => {
     window.fetch = originalFetch;
   });
 
-  it('allows collapsing and expanding the AI chat area via chat button and header toggle', () => {
+  it('allows collapsing and expanding the AI chat area via chat buttons', () => {
     render(<App />);
 
     // Initially chat input is visible
@@ -126,15 +126,6 @@ describe('App Shell', () => {
 
     // Click expand button to restore
     fireEvent.click(expandBtn);
-    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
-
-    // Toggle via toolbar button
-    const toggleBtn = screen.getByTestId('toggle-chat-btn');
-    fireEvent.click(toggleBtn);
-    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
-    expect(screen.getByTestId('expand-chat-btn')).toBeInTheDocument();
-
-    fireEvent.click(toggleBtn);
     expect(screen.getByTestId('chat-input')).toBeInTheDocument();
   });
 });

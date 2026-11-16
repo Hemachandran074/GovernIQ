@@ -12,6 +12,7 @@ import {
   Check,
   Copy,
   AlertCircle,
+  Bot,
 } from 'lucide-react';
 import { ModelOption, QueryHighlight, QueryResult } from '../types';
 import { fetchModels, submitGovernanceQuery } from '../lib/api';
@@ -159,44 +160,53 @@ export function ChatBar({
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [queryResult, onHighlight]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const trimmed = question.trim();
-    if (!trimmed || isLoading || disabled) return;
+    if (!question.trim() || isLoading || disabled) return;
 
+    const currentQuery = question.trim();
     setIsLoading(true);
     setError(null);
 
     try {
-      const res = await submitGovernanceQuery({
-        question: trimmed,
+      const response = await submitGovernanceQuery({
+        question: currentQuery,
         model: selectedModelId,
-        effort,
+        effort: effort,
       });
-      setQueryResult(res);
-      onHighlight(res.highlight);
-      setQuestion('');
+      setQueryResult(response);
+
+      if (response.highlight && response.highlight.node_ids.length > 0) {
+        onHighlight(response.highlight);
+      } else {
+        onHighlight(null);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to execute query';
       setError(msg);
+      onHighlight(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCopyCypher = () => {
+  const handleCopyCypher = async () => {
     if (!queryResult?.cypher) return;
-    navigator.clipboard.writeText(queryResult.cypher);
-    setCopiedCypher(true);
-    setTimeout(() => setCopiedCypher(false), 2000);
+    try {
+      await navigator.clipboard.writeText(queryResult.cypher);
+      setCopiedCypher(true);
+      setTimeout(() => setCopiedCypher(false), 2000);
+    } catch {
+      // ignore
+    }
   };
 
   const handleClearHighlight = () => {
@@ -223,25 +233,25 @@ export function ChatBar({
           type="button"
           data-testid="expand-chat-btn"
           onClick={handleExpand}
-          className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[var(--bg-surface)]/90 border border-[var(--border-default)] shadow-[var(--shadow-float)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--text-muted)] text-[var(--text-primary)] transition-all duration-300 active:scale-95 group backdrop-blur-xl cursor-pointer"
+          className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#111629]/95 border border-[#202B42] shadow-[0_10px_35px_rgba(0,0,0,0.6)] hover:bg-[#171E32] hover:border-[#8B7CFF]/50 text-[#F1F5F9] transition-all duration-300 active:scale-95 group backdrop-blur-2xl cursor-pointer"
           aria-label="Expand AI chat"
           aria-expanded={false}
         >
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--node-agent)]/15 text-[var(--node-agent)]">
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#8B7CFF]/20 text-[#8B7CFF]">
             <Sparkles className="h-3.5 w-3.5 group-hover:rotate-12 transition-transform duration-300" />
           </div>
           <span className="text-xs font-semibold tracking-tight">Ask AI Assistant</span>
           {queryResult && (
-            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[var(--node-agent)]/15 text-[var(--node-agent)] border border-[var(--node-agent)]/30">
+            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#8B7CFF]/20 text-[#8B7CFF] border border-[#8B7CFF]/40">
               Result Ready
             </span>
           )}
           {activeHighlight && activeHighlight.node_ids.length > 0 && (
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[var(--state-success)]/15 text-[var(--state-success)] font-semibold border border-[var(--state-success)]/30">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] font-semibold border border-[#22C55E]/30">
               {activeHighlight.node_ids.length} highlighted
             </span>
           )}
-          <ChevronUp className="h-4 w-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-transform duration-300 group-hover:-translate-y-0.5" />
+          <ChevronUp className="h-4 w-4 text-[#94A3B8] group-hover:text-[#F1F5F9] transition-transform duration-300 group-hover:-translate-y-0.5" />
         </button>
       </div>
     );
@@ -250,21 +260,22 @@ export function ChatBar({
   return (
     <div
       data-testid="chat-bar-expanded"
-      className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[540px] z-30 flex flex-col items-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in fade-in slide-in-from-bottom-2"
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[560px] z-30 flex flex-col items-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in fade-in slide-in-from-bottom-2"
     >
       {/* Answer & Query Result Card */}
       {queryResult && (
         <div
           data-testid="query-answer-card"
-          className="w-full mb-3 p-4 rounded-2xl bg-[var(--bg-surface)]/95 border border-[var(--border-default)] shadow-[var(--shadow-float)] backdrop-blur-xl transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
+          className="w-full mb-3 p-4 rounded-2xl bg-[#111629]/95 border border-[#202B42] shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
         >
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--node-agent)] bg-[var(--bg-surface-hover)] px-2 py-0.5 rounded-full border border-[var(--border-default)]">
-                Query Result
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#8B7CFF] bg-[#8B7CFF]/15 px-2.5 py-0.5 rounded-full border border-[#8B7CFF]/30 flex items-center space-x-1">
+                <Bot className="h-3 w-3" />
+                <span>Query Result</span>
               </span>
               {activeHighlight && activeHighlight.node_ids.length > 0 && (
-                <span className="text-xs font-medium text-[var(--state-success)] bg-[var(--bg-surface-hover)] px-2 py-0.5 rounded-full border border-[var(--border-default)]">
+                <span className="text-xs font-medium text-[#22C55E] bg-[#22C55E]/15 px-2.5 py-0.5 rounded-full border border-[#22C55E]/30">
                   {activeHighlight.node_ids.length} nodes highlighted
                 </span>
               )}
@@ -274,7 +285,7 @@ export function ChatBar({
               <button
                 type="button"
                 onClick={handleClearHighlight}
-                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] px-2 py-1 rounded-md transition-colors"
+                className="text-xs text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] px-2 py-1 rounded-md transition-colors"
                 title="Clear highlight and dismiss"
               >
                 Clear
@@ -283,7 +294,7 @@ export function ChatBar({
                 type="button"
                 data-testid="collapse-card-btn"
                 onClick={() => handleToggleCollapse(true)}
-                className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                className="p-1 rounded-md text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
                 title="Collapse chat"
                 aria-label="Collapse chat"
               >
@@ -292,7 +303,7 @@ export function ChatBar({
               <button
                 type="button"
                 onClick={() => setQueryResult(null)}
-                className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                className="p-1 rounded-md text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
                 title="Dismiss"
               >
                 <X className="h-4 w-4" />
@@ -301,17 +312,17 @@ export function ChatBar({
           </div>
 
           {/* Natural language explanation */}
-          <p className="text-sm text-[var(--text-primary)] leading-relaxed mb-3">
+          <p className="text-sm text-[#F1F5F9] leading-relaxed mb-3">
             {queryResult.explanation}
           </p>
 
           {/* Collapsible Cypher Query */}
-          <div className="border-t border-[var(--border-default)] pt-2.5">
+          <div className="border-t border-[#202B42] pt-2.5">
             <div className="flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setShowCypher(!showCypher)}
-                className="flex items-center gap-1.5 text-xs font-mono font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="flex items-center gap-1.5 text-xs font-mono font-medium text-[#94A3B8] hover:text-[#38BDF8] transition-colors"
               >
                 <Code2 className="h-3.5 w-3.5" />
                 <span>{showCypher ? 'Hide Cypher Query' : 'View Generated Cypher'}</span>
@@ -324,13 +335,13 @@ export function ChatBar({
                 <button
                   type="button"
                   onClick={handleCopyCypher}
-                  className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  className="flex items-center gap-1 text-xs text-[#94A3B8] hover:text-[#F1F5F9] transition-colors"
                   title="Copy Cypher query"
                 >
                   {copiedCypher ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-[var(--state-success)]" />
-                      <span className="text-[var(--state-success)]">Copied</span>
+                      <Check className="h-3.5 w-3.5 text-[#22C55E]" />
+                      <span className="text-[#22C55E]">Copied</span>
                     </>
                   ) : (
                     <>
@@ -343,7 +354,7 @@ export function ChatBar({
             </div>
 
             {showCypher && (
-              <pre className="mt-2 p-2.5 rounded-lg bg-[var(--bg-base)] border border-[var(--border-default)] text-xs font-mono text-[var(--text-primary)] overflow-x-auto whitespace-pre-wrap break-all leading-normal">
+              <pre className="mt-2 p-2.5 rounded-lg bg-[#0B1020] border border-[#202B42] text-xs font-mono text-[#38BDF8] overflow-x-auto whitespace-pre-wrap break-all leading-normal">
                 {queryResult.cypher}
               </pre>
             )}
@@ -353,7 +364,7 @@ export function ChatBar({
 
       {/* Error Banner */}
       {error && (
-        <div className="w-full mb-2 px-3 py-2 rounded-xl bg-red-500/10 border border-[var(--state-error)]/30 text-xs text-[var(--state-error)] flex items-center justify-between gap-2 animate-in fade-in duration-200">
+        <div className="w-full mb-2 px-3 py-2 rounded-xl bg-[#F43F5E]/15 border border-[#F43F5E]/30 text-xs text-[#F43F5E] flex items-center justify-between gap-2 animate-in fade-in duration-200">
           <div className="flex items-center gap-1.5">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
@@ -371,7 +382,7 @@ export function ChatBar({
       {/* Main Floating Chat Input Card */}
       <form
         onSubmit={handleSubmit}
-        className="w-full rounded-2xl bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-default)] shadow-[var(--shadow-float)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[var(--text-primary)]/15 focus-within:border-[var(--text-muted)] p-2.5"
+        className="w-full rounded-2xl bg-[#111629]/95 backdrop-blur-2xl border border-[#202B42] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[#8B7CFF]/40 focus-within:border-[#8B7CFF]/60 p-2.5"
       >
         {/* Top Input Row */}
         <div className="px-2 pt-1 pb-2 flex items-center justify-between gap-2">
@@ -383,13 +394,13 @@ export function ChatBar({
             onChange={(e) => setQuestion(e.target.value)}
             disabled={isLoading || disabled}
             placeholder="Ask anything about agents, tools, models, policies..."
-            className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+            className="w-full bg-transparent text-sm text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none"
           />
           <button
             type="button"
             data-testid="collapse-chat-btn"
             onClick={() => handleToggleCollapse(true)}
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors shrink-0"
+            className="p-1 rounded-lg text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors shrink-0"
             title="Collapse chat"
             aria-label="Collapse chat"
           >
@@ -398,7 +409,7 @@ export function ChatBar({
         </div>
 
         {/* Bottom Actions Row */}
-        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--border-default)]/60 text-xs">
+        <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#202B42]/80 text-xs">
           {/* Left Controls: Attach + Model + Effort */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* Attach button */}
@@ -406,7 +417,7 @@ export function ChatBar({
               type="button"
               onClick={onAttachClick}
               disabled={disabled || isLoading}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+              className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
               title="Attach document for ingestion"
             >
               <Plus className="h-4 w-4" />
@@ -422,7 +433,7 @@ export function ChatBar({
                   setIsEffortMenuOpen(false);
                 }}
                 disabled={disabled || isLoading}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors font-medium"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#171E32] border border-[#202B42] text-[#94A3B8] hover:text-[#F1F5F9] hover:border-[#8B7CFF]/50 transition-colors font-medium text-[11px]"
               >
                 <span className="truncate max-w-[130px]">{currentModel.name}</span>
                 <ChevronDown className="h-3 w-3 shrink-0" />
@@ -431,9 +442,9 @@ export function ChatBar({
               {isModelMenuOpen && (
                 <div
                   data-testid="model-dropdown-menu"
-                  className="absolute bottom-full mb-2 left-0 w-52 rounded-xl bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-default)] shadow-[var(--shadow-float)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
+                  className="absolute bottom-full mb-2 left-0 w-56 rounded-xl bg-[#111629]/95 backdrop-blur-2xl border border-[#202B42] shadow-[0_15px_30px_rgba(0,0,0,0.8)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
                 >
-                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border-default)]">
+                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B] border-b border-[#202B42]">
                     Select LLM Model
                   </div>
                   {models.map((mod) => (
@@ -444,18 +455,18 @@ export function ChatBar({
                         setSelectedModelId(mod.id);
                         setIsModelMenuOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs hover:bg-[var(--bg-surface-hover)] transition-colors ${
+                      className={`w-full text-left px-3 py-2 flex items-center justify-between text-xs hover:bg-[#171E32] transition-colors ${
                         selectedModelId === mod.id
-                          ? 'bg-[var(--bg-selected)] font-semibold text-[var(--text-primary)]'
-                          : 'text-[var(--text-primary)]'
+                          ? 'bg-[#202B42] font-semibold text-[#8B7CFF]'
+                          : 'text-[#F1F5F9]'
                       }`}
                     >
                       <div className="flex flex-col truncate">
                         <span className="truncate">{mod.name}</span>
-                        <span className="text-[10px] text-[var(--text-muted)]">{mod.provider}</span>
+                        <span className="text-[10px] text-[#64748B]">{mod.provider}</span>
                       </div>
                       {selectedModelId === mod.id && (
-                        <Check className="h-3.5 w-3.5 text-[var(--text-primary)] shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-[#8B7CFF] shrink-0" />
                       )}
                     </button>
                   ))}
@@ -473,9 +484,9 @@ export function ChatBar({
                   setIsModelMenuOpen(false);
                 }}
                 disabled={disabled || isLoading}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors font-medium capitalize"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171E32] border border-[#202B42] text-[#94A3B8] hover:text-[#F1F5F9] hover:border-[#8B7CFF]/50 transition-colors font-medium capitalize text-[11px]"
               >
-                <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                <Sparkles className="h-3 w-3 text-[#F59E0B] shrink-0" />
                 <span>{effort}</span>
                 <ChevronDown className="h-3 w-3 shrink-0" />
               </button>
@@ -483,9 +494,9 @@ export function ChatBar({
               {isEffortMenuOpen && (
                 <div
                   data-testid="effort-dropdown-menu"
-                  className="absolute bottom-full mb-2 left-0 w-36 rounded-xl bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-default)] shadow-[var(--shadow-float)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
+                  className="absolute bottom-full mb-2 left-0 w-36 rounded-xl bg-[#111629]/95 backdrop-blur-2xl border border-[#202B42] shadow-[0_15px_30px_rgba(0,0,0,0.8)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
                 >
-                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border-default)]">
+                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B] border-b border-[#202B42]">
                     Effort Level
                   </div>
                   {(['low', 'medium', 'high'] as const).map((level) => (
@@ -496,15 +507,15 @@ export function ChatBar({
                         setEffort(level);
                         setIsEffortMenuOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs capitalize hover:bg-[var(--bg-surface-hover)] transition-colors ${
+                      className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs capitalize hover:bg-[#171E32] transition-colors ${
                         effort === level
-                          ? 'bg-[var(--bg-selected)] font-semibold text-[var(--text-primary)]'
-                          : 'text-[var(--text-primary)]'
+                          ? 'bg-[#202B42] font-semibold text-[#8B7CFF]'
+                          : 'text-[#F1F5F9]'
                       }`}
                     >
                       <span>{level}</span>
                       {effort === level && (
-                        <Check className="h-3.5 w-3.5 text-[var(--text-primary)] shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-[#8B7CFF] shrink-0" />
                       )}
                     </button>
                   ))}
@@ -519,10 +530,9 @@ export function ChatBar({
             <button
               type="button"
               disabled={disabled || isLoading}
-              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+              className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
               title="Voice dictation (speech-to-text)"
               onClick={() => {
-                // Visual placeholder / web speech API support
                 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                   try {
                     const SpeechRecognition =
@@ -552,15 +562,15 @@ export function ChatBar({
               disabled={!question.trim() || isLoading || disabled}
               className={`p-1.5 rounded-xl transition-all ${
                 question.trim() && !isLoading && !disabled
-                  ? 'bg-[var(--text-primary)] text-[var(--bg-surface)] hover:opacity-90 shadow-sm'
-                  : 'bg-[var(--border-default)] text-[var(--text-muted)] opacity-50 cursor-not-allowed'
+                  ? 'bg-[#8B7CFF] text-[#080B18] font-bold hover:bg-[#9D91FF] shadow-[0_0_15px_rgba(139,124,255,0.4)] active:scale-95'
+                  : 'bg-[#202B42] text-[#64748B] opacity-50 cursor-not-allowed'
               }`}
               title="Execute governance query"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <ArrowUp className="h-4 w-4" />
+                <ArrowUp className="h-4 w-4 stroke-[2.5]" />
               )}
             </button>
           </div>

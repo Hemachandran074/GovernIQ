@@ -31,7 +31,6 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    // Only leave if exiting the drop zone boundaries
     if (e.currentTarget.contains(e.relatedTarget as Node)) {
       return;
     }
@@ -99,7 +98,6 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
     if (files && files.length > 0 && files[0]) {
       void processFile(files[0]);
     }
-    // Reset file input value to allow re-uploading the same file
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -126,8 +124,7 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
   };
 
   return (
-    <div className="w-full mb-6">
-      {/* Hidden file input placed outside the clickable card to prevent event bubbling recursion */}
+    <div className="w-full mb-5">
       <input
         ref={fileInputRef}
         type="file"
@@ -147,67 +144,69 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         aria-label="Upload document drop zone"
-        className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ease-out select-none relative group outline-none focus-visible:ring-2 focus-visible:ring-content-primary/40 ${
+        className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ease-out select-none relative group outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/50 ${
           state === 'dragging'
-            ? 'border-content-primary bg-surface-hover shadow-md scale-[1.01]'
+            ? 'border-[#8B7CFF] bg-[#1C253C] shadow-[0_0_25px_rgba(139,124,255,0.25)] scale-[1.01]'
             : state === 'uploading'
-            ? 'border-node-tool bg-surface cursor-wait'
+            ? 'border-[#F59E0B] bg-[#171E32] cursor-wait'
             : state === 'success'
-            ? 'border-state-success bg-state-success/10 hover:bg-state-success/15'
+            ? 'border-[#22C55E]/60 bg-[#22C55E]/10 hover:bg-[#22C55E]/15'
             : state === 'error'
-            ? 'border-state-error bg-state-error/10 hover:bg-state-error/15'
-            : 'border-border-dashed hover:border-content-primary hover:bg-surface-hover/70 hover:shadow-sm active:scale-[0.99]'
+            ? 'border-[#F43F5E]/60 bg-[#F43F5E]/10 hover:bg-[#F43F5E]/15'
+            : 'border-[#29344A] bg-[#171E32]/60 hover:border-[#8B7CFF]/60 hover:bg-[#171E32] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] active:scale-[0.99]'
         }`}
       >
         {state === 'uploading' ? (
           <div className="flex flex-col items-center py-1 pointer-events-none">
-            <Loader2 className="h-8 w-8 text-node-tool animate-spin mb-2" />
-            <span className="text-sm font-medium text-content-primary">{uploadedFile}</span>
-            <span className="text-xs text-content-muted mt-1">{statusMessage}</span>
+            <Loader2 className="h-8 w-8 text-[#F59E0B] animate-spin mb-2" />
+            <span className="text-sm font-medium text-[#F1F5F9]">{uploadedFile}</span>
+            <span className="text-xs text-[#94A3B8] mt-1">{statusMessage}</span>
           </div>
         ) : state === 'success' ? (
           <div className="flex flex-col items-center py-1">
-            <CheckCircle2 className="h-8 w-8 text-state-success mb-2 transition-transform duration-200 scale-110 pointer-events-none" />
-            <span className="text-sm font-medium text-content-primary truncate max-w-[260px] pointer-events-none">
+            <CheckCircle2 className="h-8 w-8 text-[#22C55E] mb-2 transition-transform duration-200 scale-110 pointer-events-none" />
+            <span className="text-sm font-semibold text-[#F1F5F9] truncate max-w-[260px] pointer-events-none">
               {uploadedFile}
             </span>
-            <span className="text-xs text-state-success font-medium mt-1 pointer-events-none">
+            <span className="text-xs text-[#22C55E] font-medium mt-1 pointer-events-none">
               {statusMessage}
             </span>
             <button
               type="button"
               onClick={resetUpload}
-              className="text-[11px] text-content-muted hover:text-content-primary underline mt-2 py-0.5 px-2 rounded hover:bg-surface transition-colors"
+              className="text-[11px] text-[#94A3B8] hover:text-[#F1F5F9] underline mt-2 py-0.5 px-2 rounded hover:bg-[#202B42] transition-colors"
             >
               Upload another
             </button>
           </div>
         ) : state === 'error' ? (
           <div className="flex flex-col items-center py-1">
-            <AlertCircle className="h-8 w-8 text-state-error mb-2 transition-transform duration-200 scale-110 pointer-events-none" />
-            <span className="text-sm font-medium text-state-error pointer-events-none">Upload failed</span>
-            <span className="text-xs text-state-error mt-1 max-w-[260px] pointer-events-none">
+            <AlertCircle className="h-8 w-8 text-[#F43F5E] mb-2 transition-transform duration-200 scale-110 pointer-events-none" />
+            <span className="text-sm font-semibold text-[#F43F5E] pointer-events-none">Upload failed</span>
+            <span className="text-xs text-[#F43F5E] mt-1 max-w-[260px] pointer-events-none">
               {statusMessage}
             </span>
             <button
               type="button"
               onClick={resetUpload}
-              className="text-[11px] text-content-muted hover:text-content-primary underline mt-2 py-0.5 px-2 rounded hover:bg-surface transition-colors"
+              className="text-[11px] text-[#94A3B8] hover:text-[#F1F5F9] underline mt-2 py-0.5 px-2 rounded hover:bg-[#202B42] transition-colors"
             >
               Try again
             </button>
           </div>
         ) : (
           <div className="flex flex-col items-center pointer-events-none">
-            <UploadCloud
-              className={`h-8 w-8 text-content-muted mb-2 transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:text-content-primary ${
-                state === 'dragging' ? '-translate-y-1 text-content-primary' : ''
-              }`}
-            />
-            <span className="text-sm font-medium text-content-primary transition-colors duration-150">
+            <div className="w-10 h-10 rounded-xl bg-[#202B42]/80 border border-[#29344A] flex items-center justify-center mb-2.5 group-hover:border-[#8B7CFF]/50 group-hover:scale-105 transition-all">
+              <UploadCloud
+                className={`h-5 w-5 text-[#8B7CFF] transition-transform duration-300 ease-out ${
+                  state === 'dragging' ? '-translate-y-1' : ''
+                }`}
+              />
+            </div>
+            <span className="text-sm font-medium text-[#F1F5F9] transition-colors duration-150">
               {state === 'dragging' ? 'Drop document here' : 'Upload document'}
             </span>
-            <span className="text-xs text-content-muted mt-1">MD, YAML, JSON or JSONL supported</span>
+            <span className="text-xs text-[#94A3B8] mt-1">MD, YAML, JSON or JSONL supported</span>
           </div>
         )}
       </div>
