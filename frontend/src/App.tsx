@@ -621,7 +621,7 @@ export const App: React.FC = () => {
             <span>Click any node in graph to inspect details</span>
           </div>
 
-          {/* Status footer */}
+          {/* Status footer
           <div className="mt-auto pt-3 border-t border-[#202B42] flex items-center justify-between text-xs text-[#64748B] shrink-0">
             <span>API Status:</span>
             <span
@@ -633,7 +633,7 @@ export const App: React.FC = () => {
             >
               {healthStatus}
             </span>
-          </div>
+          </div> */}
         </div>
       </aside>
 
