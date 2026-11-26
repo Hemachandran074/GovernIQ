@@ -144,69 +144,69 @@ export const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess }) => {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         aria-label="Upload document drop zone"
-        className={`border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ease-out select-none relative group outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/50 ${
+        className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 select-none relative group outline-none focus-visible:ring-2 focus-visible:ring-[#0075DE]/40 ${
           state === 'dragging'
-            ? 'border-[#8B7CFF] bg-[#1C253C] shadow-[0_0_25px_rgba(139,124,255,0.25)] scale-[1.01]'
+            ? 'border-[#0075DE] bg-[#EEF6FF] dark:bg-[#1F334A] scale-[1.01]'
             : state === 'uploading'
-            ? 'border-[#F59E0B] bg-[#171E32] cursor-wait'
+            ? 'border-[#DD5B00] bg-[#FFF8F0] dark:bg-[#2A2015] cursor-wait'
             : state === 'success'
-            ? 'border-[#22C55E]/60 bg-[#22C55E]/10 hover:bg-[#22C55E]/15'
+            ? 'border-[#1AAE39]/60 bg-[#E7F7ED] dark:bg-[#1A2E20]'
             : state === 'error'
-            ? 'border-[#F43F5E]/60 bg-[#F43F5E]/10 hover:bg-[#F43F5E]/15'
-            : 'border-[#29344A] bg-[#171E32]/60 hover:border-[#8B7CFF]/60 hover:bg-[#171E32] hover:shadow-[0_4px_20px_rgba(0,0,0,0.4)] active:scale-[0.99]'
+            ? 'border-[#E03E3E]/60 bg-[#FFDEDE] dark:bg-[#331C1C]'
+            : 'border-[#D4D4D4] dark:border-[#3F3F3F] bg-[#F6F5F4] dark:bg-[#252525] hover:border-[#0075DE] hover:bg-[#FFFFFF] dark:hover:bg-[#2A2A2A] shadow-sm'
         }`}
       >
         {state === 'uploading' ? (
           <div className="flex flex-col items-center py-1 pointer-events-none">
-            <Loader2 className="h-8 w-8 text-[#F59E0B] animate-spin mb-2" />
-            <span className="text-sm font-medium text-[#F1F5F9]">{uploadedFile}</span>
-            <span className="text-xs text-[#94A3B8] mt-1">{statusMessage}</span>
+            <Loader2 className="h-6 w-6 text-[#DD5B00] animate-spin mb-1.5" />
+            <span className="text-xs font-semibold text-[#000000] dark:text-[#EBEBEB]">{uploadedFile}</span>
+            <span className="text-[11px] text-[#615D59] dark:text-[#9B9B9B] mt-0.5">{statusMessage}</span>
           </div>
         ) : state === 'success' ? (
           <div className="flex flex-col items-center py-1">
-            <CheckCircle2 className="h-8 w-8 text-[#22C55E] mb-2 transition-transform duration-200 scale-110 pointer-events-none" />
-            <span className="text-sm font-semibold text-[#F1F5F9] truncate max-w-[260px] pointer-events-none">
+            <CheckCircle2 className="h-6 w-6 text-[#1AAE39] mb-1.5 transition-transform duration-200 scale-105 pointer-events-none" />
+            <span className="text-xs font-semibold text-[#000000] dark:text-[#EBEBEB] truncate max-w-[240px] pointer-events-none">
               {uploadedFile}
             </span>
-            <span className="text-xs text-[#22C55E] font-medium mt-1 pointer-events-none">
+            <span className="text-[11px] text-[#1AAE39] font-medium mt-0.5 pointer-events-none">
               {statusMessage}
             </span>
             <button
               type="button"
               onClick={resetUpload}
-              className="text-[11px] text-[#94A3B8] hover:text-[#F1F5F9] underline mt-2 py-0.5 px-2 rounded hover:bg-[#202B42] transition-colors"
+              className="text-[11px] text-[#0075DE] hover:underline mt-1.5 py-0.5 px-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             >
               Upload another
             </button>
           </div>
         ) : state === 'error' ? (
           <div className="flex flex-col items-center py-1">
-            <AlertCircle className="h-8 w-8 text-[#F43F5E] mb-2 transition-transform duration-200 scale-110 pointer-events-none" />
-            <span className="text-sm font-semibold text-[#F43F5E] pointer-events-none">Upload failed</span>
-            <span className="text-xs text-[#F43F5E] mt-1 max-w-[260px] pointer-events-none">
+            <AlertCircle className="h-6 w-6 text-[#E03E3E] mb-1.5 pointer-events-none" />
+            <span className="text-xs font-semibold text-[#E03E3E] pointer-events-none">Upload failed</span>
+            <span className="text-[11px] text-[#E03E3E] mt-0.5 max-w-[240px] pointer-events-none">
               {statusMessage}
             </span>
             <button
               type="button"
               onClick={resetUpload}
-              className="text-[11px] text-[#94A3B8] hover:text-[#F1F5F9] underline mt-2 py-0.5 px-2 rounded hover:bg-[#202B42] transition-colors"
+              className="text-[11px] text-[#E03E3E] hover:underline mt-1.5 py-0.5 px-2 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             >
               Try again
             </button>
           </div>
         ) : (
           <div className="flex flex-col items-center pointer-events-none">
-            <div className="w-10 h-10 rounded-xl bg-[#202B42]/80 border border-[#29344A] flex items-center justify-center mb-2.5 group-hover:border-[#8B7CFF]/50 group-hover:scale-105 transition-all">
+            <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#1E1E1E] border border-[#E6E6E6] dark:border-[#373737] flex items-center justify-center mb-1.5 shadow-sm group-hover:scale-105 transition-transform">
               <UploadCloud
-                className={`h-5 w-5 text-[#8B7CFF] transition-transform duration-300 ease-out ${
-                  state === 'dragging' ? '-translate-y-1' : ''
+                className={`h-4 w-4 text-[#0075DE] transition-transform duration-200 ${
+                  state === 'dragging' ? '-translate-y-0.5' : ''
                 }`}
               />
             </div>
-            <span className="text-sm font-medium text-[#F1F5F9] transition-colors duration-150">
+            <span className="text-xs font-semibold text-[#000000] dark:text-[#EBEBEB]">
               {state === 'dragging' ? 'Drop document here' : 'Upload document'}
             </span>
-            <span className="text-xs text-[#94A3B8] mt-1">MD, YAML, JSON or JSONL supported</span>
+            <span className="text-[10px] text-[#615D59] dark:text-[#9B9B9B] mt-0.5">MD, YAML, JSON or JSONL supported</span>
           </div>
         )}
       </div>

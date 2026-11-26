@@ -227,31 +227,31 @@ export function ChatBar({
     return (
       <div
         data-testid="chat-bar-collapsed"
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-300"
       >
         <button
           type="button"
           data-testid="expand-chat-btn"
           onClick={handleExpand}
-          className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#111629]/95 border border-[#202B42] shadow-[0_10px_35px_rgba(0,0,0,0.6)] hover:bg-[#171E32] hover:border-[#8B7CFF]/50 text-[#F1F5F9] transition-all duration-300 active:scale-95 group backdrop-blur-2xl cursor-pointer"
+          className="flex items-center gap-2.5 px-4 py-2 rounded-full bg-white dark:bg-[#202020] border border-[#E6E6E6] dark:border-[#2E2E2E] shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:bg-[#F6F5F4] dark:hover:bg-[#282828] hover:border-[#0075DE]/50 text-[#000000] dark:text-[#EBEBEB] transition-all duration-200 active:scale-95 group cursor-pointer"
           aria-label="Expand AI chat"
           aria-expanded={false}
         >
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#8B7CFF]/20 text-[#8B7CFF]">
-            <Sparkles className="h-3.5 w-3.5 group-hover:rotate-12 transition-transform duration-300" />
+          <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[#0075DE]/10 text-[#0075DE]">
+            <Sparkles className="h-3.5 w-3.5 group-hover:rotate-12 transition-transform duration-200" />
           </div>
           <span className="text-xs font-semibold tracking-tight">Ask AI Assistant</span>
           {queryResult && (
-            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#8B7CFF]/20 text-[#8B7CFF] border border-[#8B7CFF]/40">
+            <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#0075DE]/10 text-[#0075DE] border border-[#0075DE]/30">
               Result Ready
             </span>
           )}
           {activeHighlight && activeHighlight.node_ids.length > 0 && (
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#22C55E]/15 text-[#22C55E] font-semibold border border-[#22C55E]/30">
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#E7F7ED] text-[#1AAE39] font-semibold border border-[#1AAE39]/30">
               {activeHighlight.node_ids.length} highlighted
             </span>
           )}
-          <ChevronUp className="h-4 w-4 text-[#94A3B8] group-hover:text-[#F1F5F9] transition-transform duration-300 group-hover:-translate-y-0.5" />
+          <ChevronUp className="h-4 w-4 text-[#615D59] dark:text-[#9B9B9B] group-hover:text-[#000000] dark:group-hover:text-[#EBEBEB] transition-transform duration-200 group-hover:-translate-y-0.5" />
         </button>
       </div>
     );
@@ -260,22 +260,22 @@ export function ChatBar({
   return (
     <div
       data-testid="chat-bar-expanded"
-      className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[560px] z-30 flex flex-col items-center transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] animate-in fade-in slide-in-from-bottom-2"
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[560px] z-30 flex flex-col items-center transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
     >
       {/* Answer & Query Result Card */}
       {queryResult && (
         <div
           data-testid="query-answer-card"
-          className="w-full mb-3 p-4 rounded-2xl bg-[#111629]/95 border border-[#202B42] shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl transition-all animate-in fade-in slide-in-from-bottom-2 duration-300"
+          className="w-full mb-3 p-4 rounded-xl bg-white dark:bg-[#202020] border border-[#E6E6E6] dark:border-[#2E2E2E] shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all animate-in fade-in slide-in-from-bottom-2 duration-200"
         >
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#8B7CFF] bg-[#8B7CFF]/15 px-2.5 py-0.5 rounded-full border border-[#8B7CFF]/30 flex items-center space-x-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#0075DE] bg-[#0075DE]/10 px-2.5 py-0.5 rounded-full border border-[#0075DE]/30 flex items-center space-x-1">
                 <Bot className="h-3 w-3" />
                 <span>Query Result</span>
               </span>
               {activeHighlight && activeHighlight.node_ids.length > 0 && (
-                <span className="text-xs font-medium text-[#22C55E] bg-[#22C55E]/15 px-2.5 py-0.5 rounded-full border border-[#22C55E]/30">
+                <span className="text-xs font-medium text-[#1AAE39] bg-[#E7F7ED] px-2.5 py-0.5 rounded-full border border-[#1AAE39]/30">
                   {activeHighlight.node_ids.length} nodes highlighted
                 </span>
               )}
@@ -285,7 +285,7 @@ export function ChatBar({
               <button
                 type="button"
                 onClick={handleClearHighlight}
-                className="text-xs text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] px-2 py-1 rounded-md transition-colors"
+                className="text-xs text-[#615D59] dark:text-[#9B9B9B] hover:text-[#000000] dark:hover:text-[#EBEBEB] hover:bg-[#F6F5F4] dark:hover:bg-[#2A2A2A] px-2 py-1 rounded-md transition-colors"
                 title="Clear highlight and dismiss"
               >
                 Clear
@@ -294,7 +294,7 @@ export function ChatBar({
                 type="button"
                 data-testid="collapse-card-btn"
                 onClick={() => handleToggleCollapse(true)}
-                className="p-1 rounded-md text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
+                className="p-1 rounded-md text-[#615D59] dark:text-[#9B9B9B] hover:text-[#000000] dark:hover:text-[#EBEBEB] hover:bg-[#F6F5F4] dark:hover:bg-[#2A2A2A] transition-colors"
                 title="Collapse chat"
                 aria-label="Collapse chat"
               >
@@ -303,7 +303,7 @@ export function ChatBar({
               <button
                 type="button"
                 onClick={() => setQueryResult(null)}
-                className="p-1 rounded-md text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
+                className="p-1 rounded-md text-[#615D59] dark:text-[#9B9B9B] hover:text-[#000000] dark:hover:text-[#EBEBEB] hover:bg-[#F6F5F4] dark:hover:bg-[#2A2A2A] transition-colors"
                 title="Dismiss"
               >
                 <X className="h-4 w-4" />
@@ -312,17 +312,17 @@ export function ChatBar({
           </div>
 
           {/* Natural language explanation */}
-          <p className="text-sm text-[#F1F5F9] leading-relaxed mb-3">
+          <p className="text-sm text-[#31302E] dark:text-[#EBEBEB] leading-relaxed mb-3">
             {queryResult.explanation}
           </p>
 
           {/* Collapsible Cypher Query */}
-          <div className="border-t border-[#202B42] pt-2.5">
+          <div className="border-t border-[#E6E6E6] dark:border-[#2E2E2E] pt-2.5">
             <div className="flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setShowCypher(!showCypher)}
-                className="flex items-center gap-1.5 text-xs font-mono font-medium text-[#94A3B8] hover:text-[#38BDF8] transition-colors"
+                className="flex items-center gap-1.5 text-xs font-mono font-medium text-[#615D59] dark:text-[#9B9B9B] hover:text-[#0075DE] transition-colors"
               >
                 <Code2 className="h-3.5 w-3.5" />
                 <span>{showCypher ? 'Hide Cypher Query' : 'View Generated Cypher'}</span>
@@ -335,13 +335,13 @@ export function ChatBar({
                 <button
                   type="button"
                   onClick={handleCopyCypher}
-                  className="flex items-center gap-1 text-xs text-[#94A3B8] hover:text-[#F1F5F9] transition-colors"
+                  className="flex items-center gap-1 text-xs text-[#615D59] dark:text-[#9B9B9B] hover:text-[#000000] dark:hover:text-[#EBEBEB] transition-colors"
                   title="Copy Cypher query"
                 >
                   {copiedCypher ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-[#22C55E]" />
-                      <span className="text-[#22C55E]">Copied</span>
+                      <Check className="h-3.5 w-3.5 text-[#1AAE39]" />
+                      <span className="text-[#1AAE39]">Copied</span>
                     </>
                   ) : (
                     <>
@@ -354,7 +354,7 @@ export function ChatBar({
             </div>
 
             {showCypher && (
-              <pre className="mt-2 p-2.5 rounded-lg bg-[#0B1020] border border-[#202B42] text-xs font-mono text-[#38BDF8] overflow-x-auto whitespace-pre-wrap break-all leading-normal">
+              <pre className="mt-2 p-2.5 rounded-lg bg-[#F6F5F4] dark:bg-[#191919] border border-[#E6E6E6] dark:border-[#2E2E2E] text-xs font-mono text-[#0075DE] dark:text-[#62AEF0] overflow-x-auto whitespace-pre-wrap break-all leading-normal">
                 {queryResult.cypher}
               </pre>
             )}
@@ -364,7 +364,7 @@ export function ChatBar({
 
       {/* Error Banner */}
       {error && (
-        <div className="w-full mb-2 px-3 py-2 rounded-xl bg-[#F43F5E]/15 border border-[#F43F5E]/30 text-xs text-[#F43F5E] flex items-center justify-between gap-2 animate-in fade-in duration-200">
+        <div className="w-full mb-2 px-3 py-2 rounded-lg bg-[#FFDEDE] dark:bg-[#331C1C] border border-[#E03E3E]/40 text-xs text-[#E03E3E] flex items-center justify-between gap-2 animate-in fade-in duration-200">
           <div className="flex items-center gap-1.5">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
@@ -382,7 +382,7 @@ export function ChatBar({
       {/* Main Floating Chat Input Card */}
       <form
         onSubmit={handleSubmit}
-        className="w-full rounded-2xl bg-[#111629]/95 backdrop-blur-2xl border border-[#202B42] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[#8B7CFF]/40 focus-within:border-[#8B7CFF]/60 p-2.5"
+        className="w-full rounded-2xl bg-white dark:bg-[#202020] border border-[#E6E6E6] dark:border-[#2E2E2E] shadow-[0_12px_36px_rgba(0,0,0,0.1)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[#0075DE]/30 focus-within:border-[#0075DE] p-2.5"
       >
         {/* Top Input Row */}
         <div className="px-2 pt-1 pb-2 flex items-center justify-between gap-2">
@@ -394,13 +394,13 @@ export function ChatBar({
             onChange={(e) => setQuestion(e.target.value)}
             disabled={isLoading || disabled}
             placeholder="Ask anything about agents, tools, models, policies..."
-            className="w-full bg-transparent text-sm text-[#F1F5F9] placeholder:text-[#64748B] focus:outline-none"
+            className="w-full bg-transparent text-sm text-[#000000] dark:text-[#EBEBEB] placeholder:text-[#A39E98] focus:outline-none"
           />
           <button
             type="button"
             data-testid="collapse-chat-btn"
             onClick={() => handleToggleCollapse(true)}
-            className="p-1 rounded-lg text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors shrink-0"
+            className="p-1 rounded-md text-[#615D59] dark:text-[#9B9B9B] hover:text-[#000000] dark:hover:text-[#EBEBEB] hover:bg-[#F6F5F4] dark:hover:bg-[#282828] transition-colors shrink-0"
             title="Collapse chat"
             aria-label="Collapse chat"
           >
@@ -409,7 +409,7 @@ export function ChatBar({
         </div>
 
         {/* Bottom Actions Row */}
-        <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#202B42]/80 text-xs">
+        <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[#E6E6E6] dark:border-[#2E2E2E] text-xs">
           {/* Left Controls: Attach + Model + Effort */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {/* Attach button */}
@@ -417,7 +417,7 @@ export function ChatBar({
               type="button"
               onClick={onAttachClick}
               disabled={disabled || isLoading}
-              className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
+              className="p-1.5 rounded-md text-[#615D59] dark:text-[#9B9B9B] hover:text-[#000000] dark:hover:text-[#EBEBEB] hover:bg-[#F6F5F4] dark:hover:bg-[#282828] transition-colors"
               title="Attach document for ingestion"
             >
               <Plus className="h-4 w-4" />
@@ -433,7 +433,7 @@ export function ChatBar({
                   setIsEffortMenuOpen(false);
                 }}
                 disabled={disabled || isLoading}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#171E32] border border-[#202B42] text-[#94A3B8] hover:text-[#F1F5F9] hover:border-[#8B7CFF]/50 transition-colors font-medium text-[11px]"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F6F5F4] dark:bg-[#282828] border border-[#E6E6E6] dark:border-[#373737] text-[#31302E] dark:text-[#C7C7C7] hover:border-[#0075DE] transition-colors font-medium text-[11px]"
               >
                 <span className="truncate max-w-[130px]">{currentModel.name}</span>
                 <ChevronDown className="h-3 w-3 shrink-0" />
@@ -442,9 +442,9 @@ export function ChatBar({
               {isModelMenuOpen && (
                 <div
                   data-testid="model-dropdown-menu"
-                  className="absolute bottom-full mb-2 left-0 w-56 rounded-xl bg-[#111629]/95 backdrop-blur-2xl border border-[#202B42] shadow-[0_15px_30px_rgba(0,0,0,0.8)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
+                  className="absolute bottom-full mb-2 left-0 w-56 rounded-xl bg-white dark:bg-[#202020] border border-[#E6E6E6] dark:border-[#2E2E2E] shadow-[0_12px_30px_rgba(0,0,0,0.12)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
                 >
-                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B] border-b border-[#202B42]">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#A39E98] border-b border-[#E6E6E6] dark:border-[#2E2E2E]">
                     Select LLM Model
                   </div>
                   {models.map((mod) => (
@@ -455,18 +455,18 @@ export function ChatBar({
                         setSelectedModelId(mod.id);
                         setIsModelMenuOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2 flex items-center justify-between text-xs hover:bg-[#171E32] transition-colors ${
+                      className={`w-full text-left px-3 py-2 flex items-center justify-between text-xs hover:bg-[#F6F5F4] dark:hover:bg-[#282828] transition-colors ${
                         selectedModelId === mod.id
-                          ? 'bg-[#202B42] font-semibold text-[#8B7CFF]'
-                          : 'text-[#F1F5F9]'
+                          ? 'bg-[#EEF6FF] dark:bg-[#1F334A] font-semibold text-[#0075DE]'
+                          : 'text-[#31302E] dark:text-[#EBEBEB]'
                       }`}
                     >
                       <div className="flex flex-col truncate">
                         <span className="truncate">{mod.name}</span>
-                        <span className="text-[10px] text-[#64748B]">{mod.provider}</span>
+                        <span className="text-[10px] text-[#A39E98]">{mod.provider}</span>
                       </div>
                       {selectedModelId === mod.id && (
-                        <Check className="h-3.5 w-3.5 text-[#8B7CFF] shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-[#0075DE] shrink-0" />
                       )}
                     </button>
                   ))}
@@ -484,9 +484,9 @@ export function ChatBar({
                   setIsModelMenuOpen(false);
                 }}
                 disabled={disabled || isLoading}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-[#171E32] border border-[#202B42] text-[#94A3B8] hover:text-[#F1F5F9] hover:border-[#8B7CFF]/50 transition-colors font-medium capitalize text-[11px]"
+                className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#F6F5F4] dark:bg-[#282828] border border-[#E6E6E6] dark:border-[#373737] text-[#31302E] dark:text-[#C7C7C7] hover:border-[#0075DE] transition-colors font-medium capitalize text-[11px]"
               >
-                <Sparkles className="h-3 w-3 text-[#F59E0B] shrink-0" />
+                <Sparkles className="h-3 w-3 text-[#DD5B00] shrink-0" />
                 <span>{effort}</span>
                 <ChevronDown className="h-3 w-3 shrink-0" />
               </button>
@@ -494,9 +494,9 @@ export function ChatBar({
               {isEffortMenuOpen && (
                 <div
                   data-testid="effort-dropdown-menu"
-                  className="absolute bottom-full mb-2 left-0 w-36 rounded-xl bg-[#111629]/95 backdrop-blur-2xl border border-[#202B42] shadow-[0_15px_30px_rgba(0,0,0,0.8)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
+                  className="absolute bottom-full mb-2 left-0 w-36 rounded-xl bg-white dark:bg-[#202020] border border-[#E6E6E6] dark:border-[#2E2E2E] shadow-[0_12px_30px_rgba(0,0,0,0.12)] py-1 z-40 animate-in fade-in-0 zoom-in-95 duration-150"
                 >
-                  <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#64748B] border-b border-[#202B42]">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#A39E98] border-b border-[#E6E6E6] dark:border-[#2E2E2E]">
                     Effort Level
                   </div>
                   {(['low', 'medium', 'high'] as const).map((level) => (
@@ -507,15 +507,15 @@ export function ChatBar({
                         setEffort(level);
                         setIsEffortMenuOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs capitalize hover:bg-[#171E32] transition-colors ${
+                      className={`w-full text-left px-3 py-1.5 flex items-center justify-between text-xs capitalize hover:bg-[#F6F5F4] dark:hover:bg-[#282828] transition-colors ${
                         effort === level
-                          ? 'bg-[#202B42] font-semibold text-[#8B7CFF]'
-                          : 'text-[#F1F5F9]'
+                          ? 'bg-[#EEF6FF] dark:bg-[#1F334A] font-semibold text-[#0075DE]'
+                          : 'text-[#31302E] dark:text-[#EBEBEB]'
                       }`}
                     >
                       <span>{level}</span>
                       {effort === level && (
-                        <Check className="h-3.5 w-3.5 text-[#8B7CFF] shrink-0" />
+                        <Check className="h-3.5 w-3.5 text-[#0075DE] shrink-0" />
                       )}
                     </button>
                   ))}
@@ -530,7 +530,7 @@ export function ChatBar({
             <button
               type="button"
               disabled={disabled || isLoading}
-              className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#202B42] transition-colors"
+              className="p-1.5 rounded-md text-[#615D59] dark:text-[#9B9B9B] hover:text-[#000000] dark:hover:text-[#EBEBEB] hover:bg-[#F6F5F4] dark:hover:bg-[#282828] transition-colors"
               title="Voice dictation (speech-to-text)"
               onClick={() => {
                 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -555,15 +555,15 @@ export function ChatBar({
               <Mic className="h-4 w-4" />
             </button>
 
-            {/* Send Button */}
+            {/* Send Button (Notion Blue #0075DE) */}
             <button
               type="submit"
               data-testid="chat-submit-btn"
               disabled={!question.trim() || isLoading || disabled}
-              className={`p-1.5 rounded-xl transition-all ${
+              className={`p-1.5 rounded-lg transition-all ${
                 question.trim() && !isLoading && !disabled
-                  ? 'bg-[#8B7CFF] text-[#080B18] font-bold hover:bg-[#9D91FF] shadow-[0_0_15px_rgba(139,124,255,0.4)] active:scale-95'
-                  : 'bg-[#202B42] text-[#64748B] opacity-50 cursor-not-allowed'
+                  ? 'bg-[#0075DE] text-white font-medium hover:bg-[#005BAB] shadow-sm active:scale-95 cursor-pointer'
+                  : 'bg-[#F6F5F4] dark:bg-[#2A2A2A] text-[#A39E98] dark:text-[#615D59] opacity-60 cursor-not-allowed'
               }`}
               title="Execute governance query"
             >

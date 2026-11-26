@@ -19,14 +19,14 @@ interface GraphCanvasProps {
   highlight?: QueryHighlight | null;
 }
 
-// Enterprise Dark Palette
+// Notion Sticker Palette (DESIGN.md)
 export const NODE_COLORS: Record<string, string> = {
-  User: '#60A5FA',       // electric blue
-  Agent: '#8B7CFF',      // purple violet
-  Model: '#38BDF8',      // cyan
-  Tool: '#F59E0B',       // amber
-  DataSource: '#F87171', // coral red
-  Policy: '#2DD4BF',     // mint teal
+  User: '#213183',       // Notion Deep Indigo
+  Agent: '#8B5CF6',      // Notion Sticker Purple
+  Model: '#0075DE',      // Notion Blue
+  Tool: '#DD5B00',       // Notion Sticker Orange
+  DataSource: '#EC4899', // Notion Sticker Pink
+  Policy: '#2A9D99',     // Notion Sticker Teal
 };
 
 /**
@@ -317,28 +317,28 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               shape: 'ellipse',
               width: 44,
               height: 44,
-              'background-color': isDark ? '#171E32' : '#FFFFFF',
+              'background-color': isDark ? '#222222' : '#FFFFFF',
               'background-image': 'data(iconSvg)',
               'background-fit': 'contain',
-              'background-width': '40%',
-              'background-height': '40%',
+              'background-width': '42%',
+              'background-height': '42%',
               'background-position-x': '50%',
               'background-position-y': '50%',
               'background-clip': 'node',
               label: 'data(label)',
-              color: isDark ? '#F1F5F9' : '#0F172A',
+              color: isDark ? '#EBEBEB' : '#31302E',
               'font-size': '11px',
-              'font-family': 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-              'font-weight': 500,
+              'font-family': 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+              'font-weight': 600,
               'text-valign': 'bottom',
               'text-margin-y': 7,
               'text-wrap': 'ellipsis',
               'text-max-width': '120px',
               'border-width': 2,
               'border-color': 'data(color)',
-              'border-opacity': 0.88,
+              'border-opacity': 0.9,
               'transition-property': 'background-color, border-width, border-color, opacity, underlay-opacity',
-              'transition-duration': 0.22,
+              'transition-duration': 0.2,
             },
           },
           {
@@ -347,7 +347,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               'border-width': 2.5,
               'underlay-color': 'data(color)',
               'underlay-padding': 6,
-              'underlay-opacity': 0.32,
+              'underlay-opacity': 0.22,
               'underlay-shape': 'ellipse',
             },
           },
@@ -355,29 +355,29 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
             selector: 'node:selected',
             style: {
               'border-width': 3.5,
-              'border-color': '#FFFFFF',
-              'underlay-color': 'data(color)',
+              'border-color': isDark ? '#FFFFFF' : '#0075DE',
+              'underlay-color': '#0075DE',
               'underlay-padding': 8,
-              'underlay-opacity': 0.5,
+              'underlay-opacity': 0.25,
               'underlay-shape': 'ellipse',
             },
           },
           {
             selector: 'node.orphan-node',
             style: {
-              'border-color': '#F43F5E',
+              'border-color': '#E03E3E',
               'border-width': 2.5,
-              'underlay-color': '#F43F5E',
+              'underlay-color': '#E03E3E',
               'underlay-padding': 5,
-              'underlay-opacity': 0.25,
+              'underlay-opacity': 0.2,
             },
           },
           {
             selector: 'edge',
             style: {
-              width: 1.6,
-              'line-color': isDark ? '#334155' : '#CBD5E1',
-              'target-arrow-color': isDark ? '#475569' : '#94A3B8',
+              width: 1.5,
+              'line-color': isDark ? '#373737' : '#D1D5DB',
+              'target-arrow-color': isDark ? '#555555' : '#9CA3AF',
               'target-arrow-shape': 'triangle',
               'arrow-scale': 0.85,
               'curve-style': 'bezier',
@@ -385,48 +385,48 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(
               'font-size': '9px',
               'font-family': 'JetBrains Mono, ui-monospace, monospace',
               'font-weight': 500,
-              color: isDark ? '#94A3B8' : '#64748B',
+              color: isDark ? '#9B9B9B' : '#615D59',
               'text-rotation': 'autorotate',
-              'text-background-color': isDark ? '#0B1020' : '#F8F9FC',
-              'text-background-opacity': 0.92,
+              'text-background-color': isDark ? '#202020' : '#FFFFFF',
+              'text-background-opacity': 0.95,
               'text-background-padding': '3px',
               'text-background-shape': 'roundrectangle',
               'transition-property': 'line-color, target-arrow-color, width, opacity',
-              'transition-duration': 0.22,
+              'transition-duration': 0.2,
             },
           },
           {
             selector: 'edge:selected',
             style: {
               width: 2.5,
-              'line-color': '#8B7CFF',
-              'target-arrow-color': '#8B7CFF',
-              color: '#FFFFFF',
+              'line-color': '#0075DE',
+              'target-arrow-color': '#0075DE',
+              color: '#0075DE',
             },
           },
           {
             selector: '.dimmed',
             style: {
-              opacity: 0.16,
+              opacity: 0.18,
             },
           },
           {
             selector: '.highlighted',
             style: {
               opacity: 1,
-              'border-width': 3.2,
-              'border-color': '#8B7CFF',
-              'underlay-color': '#8B7CFF',
+              'border-width': 3,
+              'border-color': '#0075DE',
+              'underlay-color': '#0075DE',
               'underlay-padding': 6,
-              'underlay-opacity': 0.35,
+              'underlay-opacity': 0.25,
             },
           },
           {
             selector: 'edge.highlighted',
             style: {
-              width: 2.6,
-              'line-color': '#8B7CFF',
-              'target-arrow-color': '#8B7CFF',
+              width: 2.5,
+              'line-color': '#0075DE',
+              'target-arrow-color': '#0075DE',
               opacity: 1,
             },
           },
