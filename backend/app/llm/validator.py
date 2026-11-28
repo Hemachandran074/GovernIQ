@@ -77,4 +77,8 @@ def validate_cypher_query(query: str) -> str:
     if not re.search(r"\bRETURN\b", cleaned, re.IGNORECASE):
         raise ValidationError("Read-only Cypher query must contain a RETURN clause")
 
+    # Enforce upper bound LIMIT to prevent denial-of-service memory exhaustion
+    if not re.search(r"\bLIMIT\s+\d+", cleaned, re.IGNORECASE):
+        cleaned = f"{cleaned} LIMIT 200"
+
     return cleaned

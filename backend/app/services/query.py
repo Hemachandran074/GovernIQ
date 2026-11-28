@@ -98,6 +98,37 @@ def _extract_highlights_from_memory(
     matched_edge_ids: set[str] = set()
     records: list[dict[str, Any]] = []
 
+    # 0. Overview / Explain this graph
+    is_overview = any(
+        kw in q_lower
+        for kw in (
+            "explain",
+            "overview",
+            "summary",
+            "summarize",
+            "architecture",
+            "all nodes",
+            "whole graph",
+            "entire graph",
+            "what is in",
+            "describe",
+            "topology",
+            "show all",
+        )
+    )
+    if is_overview:
+        all_nids = list(_memory_nodes.keys())
+        all_eids = list(_memory_edges.keys())
+        records = [
+            {
+                "summary": (
+                    f"Governance graph contains {len(all_nids)} nodes and {len(all_eids)} "
+                    f"relationships across agents, models, tools, data sources, users, and policies."
+                )
+            }
+        ]
+        return sorted(all_nids), sorted(all_eids), records
+
     # 1. Orphan agents query
     is_orphan = (
         "no policy" in q_lower
@@ -209,9 +240,10 @@ def _extract_highlights_from_memory(
                 matched_node_ids.add(edge["target"])
         return sorted(matched_node_ids), sorted(matched_edge_ids), records
 
-    # Default fallback: highlight first 10 nodes
-    all_nids = list(_memory_nodes.keys())[:10]
-    return all_nids, [], records
+    # Default fallback: highlight active nodes and connecting edges
+    all_nids = list(_memory_nodes.keys())
+    all_eids = list(_memory_edges.keys())
+    return sorted(all_nids), sorted(all_eids), records
 
 
 async def execute_governance_query(
@@ -278,6 +310,33 @@ async def execute_governance_query(
                                 "type": val.type,
                                 "props": rel_props,
                             }
+                        # Neo4j Path
+                        elif hasattr(val, "nodes") and hasattr(val, "relationships"):
+                            for p_node in val.nodes:
+                                p_props = dict(p_node.items()) if hasattr(p_node, "items") else {}
+                                p_nid = str(p_props.get("id") or getattr(p_node, "element_id", ""))
+                                if p_nid:
+                                    node_ids.add(p_nid)
+                            for p_rel in val.relationships:
+                                p_rprops = dict(p_rel.items()) if hasattr(p_rel, "items") else {}
+                                p_rid = str(p_rprops.get("id") or getattr(p_rel, "element_id", ""))
+                                if p_rid:
+                                    edge_ids.add(p_rid)
+                            rec_dict[key] = str(val)
+                        # List or collection of elements
+                        elif isinstance(val, list):
+                            for item in val:
+                                if hasattr(item, "labels") and hasattr(item, "items"):
+                                    iprops = dict(item.items())
+                                    inid = str(iprops.get("id") or getattr(item, "element_id", ""))
+                                    if inid:
+                                        node_ids.add(inid)
+                                elif hasattr(item, "type") and hasattr(item, "nodes"):
+                                    irprops = dict(item.items()) if hasattr(item, "items") else {}
+                                    irid = str(irprops.get("id") or getattr(item, "element_id", ""))
+                                    if irid:
+                                        edge_ids.add(irid)
+                            rec_dict[key] = val
                         elif isinstance(val, dict):
                             if "id" in val:
                                 node_ids.add(str(val["id"]))
@@ -303,6 +362,12 @@ async def execute_governance_query(
         node_ids.update(mem_nodes)
         edge_ids.update(mem_edges)
         records = mem_recs
+
+    # If query returned zero direct node objects (e.g. scalar counts/aggregations), enrich from memory
+    if not node_ids and _memory_nodes:
+        mem_nodes, mem_edges, _ = _extract_highlights_from_memory(cleaned_question)
+        node_ids.update(mem_nodes)
+        edge_ids.update(mem_edges)
 
     return QueryResult(
         question=cleaned_question,

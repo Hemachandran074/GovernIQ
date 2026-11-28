@@ -1,5 +1,6 @@
 """LLM-assisted and heuristic extraction of governance graph entities from Markdown prose."""
 
+import asyncio
 import json
 import logging
 import re
@@ -342,13 +343,20 @@ async def extract_prose_via_llm(content: str, filename: str) -> ExtractedDocumen
     }
 
     try:
-        async with httpx.AsyncClient(timeout=6.0) as client:
-            response = await client.post(endpoint, json=payload, headers=headers)
+        timeout_cfg = httpx.Timeout(10.0, connect=3.0)
+        async with httpx.AsyncClient(timeout=timeout_cfg) as client:
+            response = await asyncio.wait_for(
+                client.post(endpoint, json=payload, headers=headers),
+                timeout=5.0,
+            )
 
         if response.status_code == 200:
             data = response.json()
             raw_content = data["choices"][0]["message"]["content"]
-            parsed_json = json.loads(raw_content)
+            # Clean possible markdown block wrappers around JSON
+            cleaned_json = re.sub(r"^```(?:json)?\s*", "", raw_content.strip(), flags=re.IGNORECASE)
+            cleaned_json = re.sub(r"\s*```$", "", cleaned_json).strip()
+            parsed_json = json.loads(cleaned_json)
 
             # Invariant 4: Strict Pydantic validation before acceptance
             validated_payload = ExtractedDocumentPayload.model_validate(parsed_json)

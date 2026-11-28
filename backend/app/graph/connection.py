@@ -67,11 +67,13 @@ class Neo4jConnectionManager:
 
     async def verify_connectivity(self) -> bool:
         """Check whether both Neo4j connection pools can establish a connection."""
+        settings = get_settings()
+        timeout = max(settings.NEO4J_CONNECTION_TIMEOUT, 5.0)
         try:
             writer = self.get_writer()
-            await asyncio.wait_for(writer.verify_connectivity(), timeout=1.0)
+            await asyncio.wait_for(writer.verify_connectivity(), timeout=timeout)
             reader = self.get_reader()
-            await asyncio.wait_for(reader.verify_connectivity(), timeout=1.0)
+            await asyncio.wait_for(reader.verify_connectivity(), timeout=timeout)
             return True
         except (ServiceUnavailable, asyncio.TimeoutError, TimeoutError, Exception) as exc:
             logger.warning("Neo4j connectivity check failed: %s", exc)

@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _backend_env = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -42,7 +42,10 @@ class Settings(BaseSettings):
 
     # Neo4j Settings
     NEO4J_URI: str = Field(default="bolt://localhost:7687")
-    NEO4J_USER: str = Field(default="neo4j")
+    NEO4J_USER: str = Field(
+        default="neo4j",
+        validation_alias=AliasChoices("NEO4J_USER", "NEO4J_USERNAME"),
+    )
     NEO4J_PASSWORD: str = Field(default="password")
     NEO4J_DATABASE: str = Field(default="neo4j")
     NEO4J_CONNECTION_TIMEOUT: float = Field(default=5.0)
@@ -54,6 +57,28 @@ class Settings(BaseSettings):
     LLM_API_KEY: str = Field(default="")
     LLM_BASE_URL: str = Field(default="https://api.groq.com/openai/v1")
     LLM_MODEL: str = Field(default="openai/gpt-oss-120b")
+
+    @field_validator(
+        "NEO4J_URI",
+        "NEO4J_USER",
+        "NEO4J_PASSWORD",
+        "NEO4J_DATABASE",
+        "NEO4J_READ_USER",
+        "NEO4J_READ_PASSWORD",
+        "LLM_API_KEY",
+        "LLM_BASE_URL",
+        "LLM_MODEL",
+        mode="after",
+    )
+    @classmethod
+    def clean_string_settings(cls, value: str) -> str:
+        """Strip accidental whitespace and surrounding quotes from environment variables."""
+        if isinstance(value, str):
+            v = value.strip()
+            if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
+                v = v[1:-1].strip()
+            return v
+        return value
 
     @field_validator("CORS_ORIGINS", mode="after")
     @classmethod

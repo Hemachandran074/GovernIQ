@@ -1,5 +1,6 @@
 """OpenAI-compatible LLM client for NL-to-Cypher translation with heuristic fallback."""
 
+import asyncio
 import json
 import logging
 import re
@@ -26,9 +27,9 @@ Node Labels:
 Relationships:
 - (:User)-[:OWNS]->(:Agent)
 - (:User)-[:ACCESSES]->(:DataSource)
-- (:Agent)-[:USES]->(:Model)
-- (:Agent)-[:CAN_CALL]->(:Tool)
-- (:Tool)-[:READS]->(:DataSource)
+- (:Agent)-[:USES|USES_MODEL]->(:Model)
+- (:Agent)-[:CAN_CALL|HAS_TOOL]->(:Tool)
+- (:Tool)-[:READS|READS_FROM]->(:DataSource)
 - (:Tool)-[:WRITES]->(:DataSource)
 - (:Agent)-[:GOVERNED_BY]->(:Policy)
 - (:Tool)-[:GOVERNED_BY]->(:Policy)
@@ -36,20 +37,65 @@ Relationships:
 - (:Model)-[:GOVERNED_BY]->(:Policy)
 
 Instructions:
-1. Generate ONLY valid, read-only Cypher queries.
+1. Generate ONLY valid, strictly read-only Cypher queries.
 2. NEVER use write operations (CREATE, MERGE, SET, DELETE, DETACH, REMOVE, DROP, ALTER).
-3. Always include a RETURN clause returning the relevant nodes and relationships.
-4. Output your answer in JSON format with two keys:
+3. CRITICAL VISUALIZATION RULE: Always return graph nodes and relationships in the RETURN clause (e.g. `RETURN a, r, t` or `RETURN n, r, m`). NEVER return raw scalar counts, projections, or aggregations (such as `count(*)`, `collect(distinct labels(n))`) without returning the actual node and relationship entities, because the frontend visualizer requires the node and relationship objects to highlight them on the graph canvas.
+4. For overview, summary, or "explain this graph" questions, return the entire graph topology:
+   `MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100`
+5. Always use case-insensitive matching for names: `toLower(n.name) CONTAINS toLower('...')`.
+6. Output your answer strictly in valid JSON format with two keys:
    {
      "cypher": "MATCH ... RETURN ...",
-     "explanation": "Brief natural language explanation of how the query answers the user question."
+     "explanation": "Clear, detailed natural language explanation answering the question and explaining the governance topology."
    }
+
+Few-shot examples:
+- User: "Explain this graph"
+  Output: {"cypher": "MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100", "explanation": "Retrieves the complete governance topology showing all agents, foundation models, tools, data sources, users, and policies with their connections."}
+
+- User: "Which tools can the Customer Support Agent call?"
+  Output: {"cypher": "MATCH (a:Agent)-[r:CAN_CALL|HAS_TOOL]->(t:Tool) WHERE toLower(a.name) CONTAINS toLower('customer support') RETURN a, r, t", "explanation": "Identifies all tools that Customer Support Agent is authorized to invoke."}
+
+- User: "Which agents use model gpt-4.1?"
+  Output: {"cypher": "MATCH (a:Agent)-[r:USES|USES_MODEL]->(m:Model) WHERE toLower(m.name) CONTAINS toLower('gpt-4.1') RETURN a, r, m", "explanation": "Finds all agents configured to use the gpt-4.1 model."}
+
+- User: "Which agents can access the crm-database?"
+  Output: {"cypher": "MATCH (a:Agent)-[r1:CAN_CALL|HAS_TOOL]->(t:Tool)-[r2:READS|READS_FROM|WRITES]->(ds:DataSource) WHERE toLower(ds.name) CONTAINS toLower('crm-database') RETURN a, r1, t, r2, ds", "explanation": "Traces transitive data source access from agents through their authorized tools to the CRM database."}
+
+- User: "Is there any agent with no policy attached?"
+  Output: {"cypher": "MATCH (a:Agent) WHERE NOT (a)-[:GOVERNED_BY]->(:Policy) RETURN a", "explanation": "Detects unmanaged or orphan agents that lack an attached governance policy."}
+
+- User: "What is the blast radius if calculator tool is compromised?"
+  Output: {"cypher": "MATCH (t:Tool)<-[r1:CAN_CALL|HAS_TOOL]-(a:Agent)<-[r2:OWNS|USES]-(u:User) WHERE toLower(t.name) CONTAINS toLower('calculator') OPTIONAL MATCH (t)-[r3:READS|READS_FROM|WRITES]->(ds:DataSource) RETURN t, r1, a, r2, u, r3, ds", "explanation": "Calculates the blast radius of the calculator tool by identifying all calling agents, owning users, and accessible data sources."}
 """
 
 
 def heuristic_nl_to_cypher(question: str) -> tuple[str, str]:
     """Deterministic fallback NL-to-Cypher generator for standard governance queries."""
     q_lower = question.lower().strip()
+
+    # Query 0: Explain this graph / Overview
+    is_overview = any(
+        kw in q_lower
+        for kw in (
+            "explain",
+            "overview",
+            "summary",
+            "summarize",
+            "architecture",
+            "what is in",
+            "show all",
+            "whole graph",
+            "entire graph",
+            "all nodes",
+            "describe",
+        )
+    )
+    if is_overview:
+        return (
+            "MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100",
+            "Analyzing the complete governance graph topology across agents, models, tools, data sources, users, and policies.",
+        )
 
     # Query 1: What tools does Agent X have access to?
     if "tool" in q_lower and ("agent" in q_lower or "have" in q_lower or "access" in q_lower):
@@ -169,8 +215,8 @@ def heuristic_nl_to_cypher(question: str) -> tuple[str, str]:
 
     # Generic governance query fallback
     return (
-        "MATCH (n) RETURN n LIMIT 25",
-        "Exploring top governance entities across the graph.",
+        "MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 50",
+        "Exploring governance entities and their active relationships across the graph.",
     )
 
 
@@ -184,14 +230,18 @@ async def generate_cypher_and_explanation(
     target_model = model or settings.LLM_MODEL
     api_key = settings.LLM_API_KEY.strip()
 
+    # Route provider dynamically
+    base_url = settings.LLM_BASE_URL.rstrip("/")
+    if target_model.startswith("gpt-") and settings.OPENAI_API_KEY.strip():
+        api_key = settings.OPENAI_API_KEY.strip()
+        base_url = "https://api.openai.com/v1"
+
     # If no LLM key configured or offline demo mode, use heuristic fallback
     if not api_key:
         logger.info("No LLM API key configured; using deterministic heuristic translator.")
         cypher, explanation = heuristic_nl_to_cypher(question)
         return validate_cypher_query(cypher), explanation
 
-    # Call OpenAI-compatible endpoint
-    base_url = settings.LLM_BASE_URL.rstrip("/")
     endpoint = f"{base_url}/chat/completions"
 
     temperature = 0.0
@@ -216,13 +266,20 @@ async def generate_cypher_and_explanation(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(endpoint, json=payload, headers=headers)
+        timeout_cfg = httpx.Timeout(10.0, connect=3.0)
+        async with httpx.AsyncClient(timeout=timeout_cfg) as client:
+            response = await asyncio.wait_for(
+                client.post(endpoint, json=payload, headers=headers),
+                timeout=5.0,
+            )
 
         if response.status_code == 200:
             data = response.json()
             raw_content = data["choices"][0]["message"]["content"]
-            parsed_json = json.loads(raw_content)
+            # Clean possible markdown block wrappers around JSON
+            cleaned_json = re.sub(r"^```(?:json)?\s*", "", raw_content.strip(), flags=re.IGNORECASE)
+            cleaned_json = re.sub(r"\s*```$", "", cleaned_json).strip()
+            parsed_json = json.loads(cleaned_json)
 
             cypher = str(parsed_json.get("cypher", "")).strip()
             explanation = str(
