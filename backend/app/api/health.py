@@ -16,3 +16,14 @@ class HealthResponse(BaseModel):
 async def health_check() -> HealthResponse:
     """Return health status of the API service."""
     return HealthResponse(status="ok")
+
+
+@router.get("/", response_model=dict[str, str])
+async def root() -> dict[str, str]:
+    """Root endpoint welcoming clients and confirming API is alive."""
+    return {
+        "status": "ok",
+        "service": "GovernIQ Governance Graph API",
+        "health": "/health",
+        "docs": "/docs",
+    }

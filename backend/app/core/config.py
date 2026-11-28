@@ -28,11 +28,16 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_BYTES: int = Field(default=2 * 1024 * 1024)  # 2 MB
     CORS_ORIGINS: list[str] | str = Field(
         default_factory=lambda: [
+            "*",
+            "https://govern-iq-topaz.vercel.app",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "http://localhost:3000",
             "http://127.0.0.1:3000",
         ]
+    )
+    CORS_ORIGIN_REGEX: str | None = Field(
+        default=r"^https?://(localhost|127\.0\.0\.1|.*\.vercel\.app|.*\.onrender\.com)(:\d+)?$"
     )
 
     # Neo4j Settings
