@@ -35,6 +35,27 @@ def sanitize_cypher_text(raw_query: str) -> str:
     # Remove inline line comments
     cleaned = re.sub(r"//.*$", "", cleaned, flags=re.MULTILINE)
 
+    # Clean parameterized filters that lack runtime parameters
+    # e.g. WHERE toLower(a.name) CONTAINS toLower($agentName) or WHERE a.name = $agentName
+    cleaned = re.sub(
+        r"\bWHERE\s+toLower\([^)]+\)\s+CONTAINS\s+toLower\(\$[a-zA-Z0-9_]+\)",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(
+        r"\bWHERE\s+[a-zA-Z0-9_.]+\s*=\s*\$[a-zA-Z0-9_]+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(
+        r"\bCONTAINS\s+toLower\(\$[a-zA-Z0-9_]+\)",
+        "IS NOT NULL",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
     # Strip trailing semicolon
     cleaned = cleaned.rstrip(";").strip()
 

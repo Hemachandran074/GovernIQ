@@ -40,33 +40,39 @@ Instructions:
 1. Generate ONLY valid, strictly read-only Cypher queries.
 2. NEVER use write operations (CREATE, MERGE, SET, DELETE, DETACH, REMOVE, DROP, ALTER).
 3. CRITICAL VISUALIZATION RULE: Always return graph nodes and relationships in the RETURN clause (e.g. `RETURN a, r, t` or `RETURN n, r, m`). NEVER return raw scalar counts, projections, or aggregations (such as `count(*)`, `collect(distinct labels(n))`) without returning the actual node and relationship entities, because the frontend visualizer requires the node and relationship objects to highlight them on the graph canvas.
-4. For overview, summary, or "explain this graph" questions, return the entire graph topology:
+4. CRITICAL PARAMETER RULE: NEVER use parameter placeholders (e.g. $agentName, $toolName, $param). The Cypher query must be 100% complete and standalone. When the user asks about "this agent", "the agent", or does not name a specific agent, match all agents:
+   `MATCH (a:Agent)-[r:CAN_CALL|HAS_TOOL]->(t:Tool) RETURN a, r, t`
+5. For overview, summary, or "explain this graph" questions, return the entire graph topology:
    `MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100`
-5. Always use case-insensitive matching for names: `toLower(n.name) CONTAINS toLower('...')`.
-6. Output your answer strictly in valid JSON format with two keys:
+6. Always use case-insensitive matching for names when a specific entity name is given: `toLower(n.name) CONTAINS toLower('...')`.
+7. DIRECT ANSWER RULE: The "explanation" field must directly answer the user's question in plain English. NEVER describe the query or say "Finds all tools...", "Identifies...", "Calculates...". Directly state the answer.
+8. Output your answer strictly in valid JSON format with two keys:
    {
      "cypher": "MATCH ... RETURN ...",
-     "explanation": "Clear, detailed natural language explanation answering the question and explaining the governance topology."
+     "explanation": "Direct, conversational, natural-language answer to the user's question."
    }
 
 Few-shot examples:
 - User: "Explain this graph"
-  Output: {"cypher": "MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100", "explanation": "Retrieves the complete governance topology showing all agents, foundation models, tools, data sources, users, and policies with their connections."}
+  Output: {"cypher": "MATCH (n) OPTIONAL MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100", "explanation": "Here is the complete governance topology showing all agents, foundation models, tools, data sources, users, and policies."}
+
+- User: "what are the tools that this agent can access"
+  Output: {"cypher": "MATCH (a:Agent)-[r:CAN_CALL|HAS_TOOL]->(t:Tool) RETURN a, r, t", "explanation": "Here are the tools that the agent is authorized to access."}
 
 - User: "Which tools can the Customer Support Agent call?"
-  Output: {"cypher": "MATCH (a:Agent)-[r:CAN_CALL|HAS_TOOL]->(t:Tool) WHERE toLower(a.name) CONTAINS toLower('customer support') RETURN a, r, t", "explanation": "Identifies all tools that Customer Support Agent is authorized to invoke."}
+  Output: {"cypher": "MATCH (a:Agent)-[r:CAN_CALL|HAS_TOOL]->(t:Tool) WHERE toLower(a.name) CONTAINS toLower('customer support') RETURN a, r, t", "explanation": "Here are the tools that Customer Support Agent is authorized to invoke."}
 
 - User: "Which agents use model gpt-4.1?"
-  Output: {"cypher": "MATCH (a:Agent)-[r:USES|USES_MODEL]->(m:Model) WHERE toLower(m.name) CONTAINS toLower('gpt-4.1') RETURN a, r, m", "explanation": "Finds all agents configured to use the gpt-4.1 model."}
+  Output: {"cypher": "MATCH (a:Agent)-[r:USES|USES_MODEL]->(m:Model) WHERE toLower(m.name) CONTAINS toLower('gpt-4.1') RETURN a, r, m", "explanation": "Here are the agents configured to use the gpt-4.1 model."}
 
 - User: "Which agents can access the crm-database?"
-  Output: {"cypher": "MATCH (a:Agent)-[r1:CAN_CALL|HAS_TOOL]->(t:Tool)-[r2:READS|READS_FROM|WRITES]->(ds:DataSource) WHERE toLower(ds.name) CONTAINS toLower('crm-database') RETURN a, r1, t, r2, ds", "explanation": "Traces transitive data source access from agents through their authorized tools to the CRM database."}
+  Output: {"cypher": "MATCH (a:Agent)-[r1:CAN_CALL|HAS_TOOL]->(t:Tool)-[r2:READS|READS_FROM|WRITES]->(ds:DataSource) WHERE toLower(ds.name) CONTAINS toLower('crm-database') RETURN a, r1, t, r2, ds", "explanation": "Here are the agents with transitive access to the CRM database through their tools."}
 
 - User: "Is there any agent with no policy attached?"
-  Output: {"cypher": "MATCH (a:Agent) WHERE NOT (a)-[:GOVERNED_BY]->(:Policy) RETURN a", "explanation": "Detects unmanaged or orphan agents that lack an attached governance policy."}
+  Output: {"cypher": "MATCH (a:Agent) WHERE NOT (a)-[:GOVERNED_BY]->(:Policy) RETURN a", "explanation": "Here are any unmanaged or orphan agents lacking an attached governance policy."}
 
 - User: "What is the blast radius if calculator tool is compromised?"
-  Output: {"cypher": "MATCH (t:Tool)<-[r1:CAN_CALL|HAS_TOOL]-(a:Agent)<-[r2:OWNS|USES]-(u:User) WHERE toLower(t.name) CONTAINS toLower('calculator') OPTIONAL MATCH (t)-[r3:READS|READS_FROM|WRITES]->(ds:DataSource) RETURN t, r1, a, r2, u, r3, ds", "explanation": "Calculates the blast radius of the calculator tool by identifying all calling agents, owning users, and accessible data sources."}
+  Output: {"cypher": "MATCH (t:Tool)<-[r1:CAN_CALL|HAS_TOOL]-(a:Agent)<-[r2:OWNS|USES]-(u:User) WHERE toLower(t.name) CONTAINS toLower('calculator') OPTIONAL MATCH (t)-[r3:READS|READS_FROM|WRITES]->(ds:DataSource) RETURN t, r1, a, r2, u, r3, ds", "explanation": "Here is the blast radius for the calculator tool, showing all affected agents, owning users, and accessible data sources."}
 """
 
 

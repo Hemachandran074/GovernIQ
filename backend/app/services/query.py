@@ -1,9 +1,11 @@
 """Query service for NL-to-Cypher generation, safety validation, and execution."""
 
+import asyncio
 import logging
 import re
 from typing import Any
 
+import httpx
 from neo4j.exceptions import Neo4jError
 from pydantic import BaseModel, Field
 
@@ -246,6 +248,183 @@ def _extract_highlights_from_memory(
     return sorted(all_nids), sorted(all_eids), records
 
 
+async def synthesize_direct_answer(
+    question: str,
+    records: list[dict[str, Any]],
+    node_ids: set[str],
+    fallback_explanation: str,
+    model: str | None = None,
+) -> str:
+    """Synthesize a direct, factual answer to the user's prompt based on the retrieved entities."""
+    agents: set[str] = set()
+    tools: set[str] = set()
+    models: set[str] = set()
+    data_sources: set[str] = set()
+    policies: set[str] = set()
+    users: set[str] = set()
+
+    # Extract from returned database records
+    for rec in records:
+        for val in rec.values():
+            if isinstance(val, dict):
+                labels = val.get("labels", [])
+                name = val.get("name") or val.get("props", {}).get("name") or val.get("id")
+                if not name:
+                    continue
+                name_str = str(name).strip()
+                if "Agent" in labels or val.get("type") == "Agent":
+                    agents.add(name_str)
+                elif "Tool" in labels or val.get("type") == "Tool":
+                    tools.add(name_str)
+                elif "Model" in labels or val.get("type") == "Model":
+                    models.add(name_str)
+                elif "DataSource" in labels or val.get("type") == "DataSource":
+                    data_sources.add(name_str)
+                elif "Policy" in labels or val.get("type") == "Policy":
+                    policies.add(name_str)
+                elif "User" in labels or val.get("type") == "User":
+                    users.add(name_str)
+
+    # Also enrich from memory graph cache using matched node_ids
+    for nid in node_ids:
+        if nid in _memory_nodes:
+            mnode = _memory_nodes[nid]
+            mtype = mnode.get("type", "")
+            mname = str(mnode.get("name") or nid).strip()
+            if mtype == "Agent":
+                agents.add(mname)
+            elif mtype == "Tool":
+                tools.add(mname)
+            elif mtype == "Model":
+                models.add(mname)
+            elif mtype == "DataSource":
+                data_sources.add(mname)
+            elif mtype == "Policy":
+                policies.add(mname)
+            elif mtype == "User":
+                users.add(mname)
+
+    # 1. Try real LLM direct answer synthesis if API key is present
+    settings = get_settings()
+    api_key = settings.LLM_API_KEY.strip()
+    target_model = model or settings.LLM_MODEL
+    base_url = settings.LLM_BASE_URL.rstrip("/")
+    if target_model.startswith("gpt-") and settings.OPENAI_API_KEY.strip():
+        api_key = settings.OPENAI_API_KEY.strip()
+        base_url = "https://api.openai.com/v1"
+
+    if api_key and (agents or tools or models or data_sources or policies or users):
+        summary_lines = []
+        if agents:
+            summary_lines.append(f"Agents: {', '.join(sorted(agents))}")
+        if tools:
+            summary_lines.append(f"Tools: {', '.join(sorted(tools))}")
+        if models:
+            summary_lines.append(f"Models: {', '.join(sorted(models))}")
+        if data_sources:
+            summary_lines.append(f"DataSources: {', '.join(sorted(data_sources))}")
+        if policies:
+            summary_lines.append(f"Policies: {', '.join(sorted(policies))}")
+        if users:
+            summary_lines.append(f"Users: {', '.join(sorted(users))}")
+
+        entities_text = "\n".join(summary_lines)
+
+        sys_msg = (
+            "You are an AI governance assistant answering questions about an AI agent graph. "
+            "Give a DIRECT, factual, and concise answer (1-2 sentences) to the user's question based strictly on the query results. "
+            "State the exact names of the found entities (agents, tools, models, data sources, etc.). "
+            "NEVER describe the query itself or say things like 'Finds all tools...', 'Identifies...', or 'Retrieves...'."
+        )
+        user_msg = (
+            f"User Question: {question}\n\n"
+            f"Retrieved Graph Entities:\n{entities_text}\n"
+            f"Total matched records: {len(records)}"
+        )
+
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(4.0, connect=2.0)) as client:
+                res = await client.post(
+                    f"{base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json={
+                        "model": target_model,
+                        "temperature": 0.0,
+                        "messages": [
+                            {"role": "system", "content": sys_msg},
+                            {"role": "user", "content": user_msg},
+                        ],
+                    },
+                )
+                if res.status_code == 200:
+                    ans = res.json()["choices"][0]["message"]["content"].strip()
+                    if ans:
+                        return ans
+        except Exception as exc:
+            logger.debug("Fast answer synthesis LLM call failed: %s; using deterministic synthesis.", exc)
+
+    # 2. Deterministic answer synthesis fallback
+    q_lower = question.lower()
+
+    # Tools question
+    if "tool" in q_lower:
+        if tools:
+            agent_str = f"The **{', '.join(sorted(agents))}** agent" if agents else "The agent"
+            tool_list = ", ".join(f"`{t}`" for t in sorted(tools))
+            return f"{agent_str} can access {len(tools)} tool(s): {tool_list}."
+        return "No authorized tools were found for this agent in the governance graph."
+
+    # Model question
+    if "model" in q_lower:
+        if models:
+            agent_str = f"The **{', '.join(sorted(agents))}** agent" if agents else "The agent"
+            return f"{agent_str} uses the **{', '.join(sorted(models))}** model."
+        return "No foundation models were found for this agent in the governance graph."
+
+    # Data source question
+    if any(k in q_lower for k in ("data", "database", "datasource", "source")):
+        if data_sources:
+            return f"The agent has access to {len(data_sources)} data source(s): {', '.join(f'`{d}`' for d in sorted(data_sources))}."
+        return "No accessible data sources were found in the governance graph."
+
+    # Policy / Orphan question
+    if "policy" in q_lower or "orphan" in q_lower:
+        if "no policy" in q_lower or "without policy" in q_lower or "orphan" in q_lower:
+            if agents:
+                return f"The following agent(s) do not have a policy attached: {', '.join(f'`{a}`' for a in sorted(agents))}."
+            return "All agents in the graph are governed by at least one policy."
+        if policies:
+            return f"The agent is governed by {len(policies)} policy/policies: {', '.join(f'`{p}`' for p in sorted(policies))}."
+
+    # Blast radius question
+    if "blast radius" in q_lower or "compromised" in q_lower:
+        tool_str = f"`{next(iter(tools))}`" if tools else "the specified tool"
+        return (
+            f"If {tool_str} is compromised, the blast radius directly impacts: "
+            f"Agents: {', '.join(f'`{a}`' for a in sorted(agents)) or 'None'}, "
+            f"Users: {', '.join(f'`{u}`' for u in sorted(users)) or 'None'}, "
+            f"DataSources: {', '.join(f'`{d}`' for d in sorted(data_sources)) or 'None'}."
+        )
+
+    # Overview / explain
+    if any(k in q_lower for k in ("explain", "overview", "summary", "summarize", "describe", "all nodes")):
+        parts = []
+        if agents: parts.append(f"{len(agents)} Agent(s) ({', '.join(sorted(agents))})")
+        if models: parts.append(f"{len(models)} Model(s) ({', '.join(sorted(models))})")
+        if tools: parts.append(f"{len(tools)} Tool(s) ({', '.join(sorted(tools))})")
+        if data_sources: parts.append(f"{len(data_sources)} DataSource(s) ({', '.join(sorted(data_sources))})")
+        if policies: parts.append(f"{len(policies)} Policy/Policies ({', '.join(sorted(policies))})")
+        if users: parts.append(f"{len(users)} User(s) ({', '.join(sorted(users))})")
+        return f"Governance topology overview ({len(node_ids)} nodes): " + "; ".join(parts) + "."
+
+    # General fallback
+    if node_ids:
+        all_names = sorted(list(tools | models | data_sources | policies | agents | users))[:5]
+        return f"Found {len(node_ids)} matching node(s) in the graph: {', '.join(f'`{n}`' for n in all_names)}."
+
+    return fallback_explanation
+
+
 async def execute_governance_query(
     question: str,
     model: str | None = None,
@@ -369,10 +548,19 @@ async def execute_governance_query(
         node_ids.update(mem_nodes)
         edge_ids.update(mem_edges)
 
+    # Synthesize a direct, natural-language answer using the actual query findings
+    direct_answer = await synthesize_direct_answer(
+        question=cleaned_question,
+        records=records,
+        node_ids=node_ids,
+        fallback_explanation=explanation,
+        model=model,
+    )
+
     return QueryResult(
         question=cleaned_question,
         cypher=validated_cypher,
-        explanation=explanation,
+        explanation=direct_answer,
         highlight=QueryHighlight(
             node_ids=sorted(node_ids),
             edge_ids=sorted(edge_ids),
